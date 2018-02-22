@@ -436,7 +436,7 @@ void gopher_menu(state *st)
 	char timestr[20];
 	char sizestr[20];
 	char *parent;
-	char *c;
+	char *c, *d;
 	char type;
 	int width;
 	int num;
@@ -536,6 +536,12 @@ void gopher_menu(state *st)
 
 		/* Skip gophermaps and tags (but not dirs) */
 		if ((dir[i].mode & S_IFMT) != S_IFDIR) {
+			d = strrchr(dir[i].name, '.');
+			if (d++ != NULL) {
+				if (strcmp(d, st->hdr_ext) == MATCH) continue;
+				if (strcmp(d, st->ftr_ext) == MATCH) continue;
+				if (strcmp(d, st->tag_ext) == MATCH) continue;
+			}
 			if (strcmp(dir[i].name, st->map_file) == MATCH) continue;
 			if (strcmp(dir[i].name, st->tag_file) == MATCH) continue;
 		}
@@ -551,7 +557,7 @@ void gopher_menu(state *st)
 		else
 			sstrlcpy(displayname, dir[i].name);
 
-		/* #OCT-encode filename */
+		/* =OCT-encode filename */
 		strnencode(encodedname, dir[i].name, sizeof(encodedname));
 
 		/* Handle inline .gophermap */
@@ -559,6 +565,17 @@ void gopher_menu(state *st)
 			gophermap(st, pathname, 0);
 			continue;
 		}
+
+		/* Check for a file-gopherhead */
+		snprintf(buf, sizeof(buf), "%s.%s",
+			pathname, st->hdr_ext);
+
+		if (stat(buf, &file) == OK &&
+		    (file.st_mode & S_IFMT) == S_IFREG) {
+			/* Parse header as a gophermap (allows adding citations or so) */
+			gophermap(st, buf, 0);
+		}
+
 
 		/* Handle directories */
 		if ((dir[i].mode & S_IFMT) == S_IFDIR) {
@@ -627,6 +644,32 @@ void gopher_menu(state *st)
 		/* Get file type */
 		type = gopher_filetype(st, pathname, st->opt_magic);
 
+		/* Check for a file-gophertag (this will be overrode if it's a directory) */
+		if ((dir[i].mode & S_IFMT) == S_IFREG) {
+			snprintf(buf, sizeof(buf), "%s.%s",
+				pathname, st->tag_ext);
+
+			if (stat(buf, &file) == OK &&
+			    (file.st_mode & S_IFMT) == S_IFREG) {
+
+				/* Use the gophertag as displayname */
+				if ((fp = fopen(buf , "r"))) {
+
+					fgets(buf, sizeof(buf), fp);
+					chomp(buf);
+					fclose(fp);
+
+					/* Skip empty gophertags */
+					if (*buf) {
+						/* Convert to output charset */
+						if (st->opt_iconv) sstrniconv(st->out_charset, displayname, buf);
+						else sstrlcpy(displayname, buf);
+					}
+
+				}
+			}
+		}
+
 		/* File listing with dates & sizes */
 		if (st->opt_date) {
 			ltime = localtime(&dir[i].mtime);
@@ -658,6 +701,19 @@ void gopher_menu(state *st)
 				st->server_host,
 				st->server_port);
 		}
+
+
+		/* Check for a footer */
+		snprintf(buf, sizeof(buf), "%s.%s",
+			pathname, st->ftr_ext);
+
+		if (stat(buf, &file) == OK &&
+		    (file.st_mode & S_IFMT) == S_IFREG) {
+			/* Parse footer as a gophermap (allows adding citations or so) */
+			gophermap(st, buf, 0);
+		}
+
+
 	}
 
 	/* Print footer */

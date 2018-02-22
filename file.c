@@ -108,7 +108,9 @@ void url_redirect(state *st)
 	/* Basic security checking */
 	sstrlcpy(dest, st->req_selector + 4);
 
+	// ellenor@umbrellix.net - add https
 	if (sstrncmp(dest, "http://") != MATCH &&
+	    sstrncmp(dest, "https://") != MATCH &&
 	    sstrncmp(dest, "ftp://") != MATCH &&
 	    sstrncmp(dest, "mailto:") != MATCH)
 		die(st, ERR_ACCESS, "Refusing to HTTP redirect unsafe protocols");
@@ -359,16 +361,25 @@ void gopher_file(state *st)
 {
 	struct stat file;
 	char buf[BUFSIZE];
-	char *c;
+	char *c, *d;
 
 	/* Refuse to serve out gophermaps/tags */
 	if ((c = strrchr(st->req_realpath, '/'))) c++;
 	else c = st->req_realpath;
+	d = strrchr(c, '.');
 
 	if (strcmp(c, st->map_file) == MATCH)
 		die(st, ERR_ACCESS, "Refusing to serve out a gophermap file");
 	if (strcmp(c, st->tag_file) == MATCH)	
 		die(st, ERR_ACCESS, "Refusing to serve out a gophertag file");
+	if (d++ != NULL) {
+		if (strcmp(d, st->hdr_ext) == MATCH)
+			die(st, ERR_ACCESS, "Refusing to serve out a file-selector footer file");
+		if (strcmp(d, st->ftr_ext) == MATCH)
+			die(st, ERR_ACCESS, "Refusing to serve out a file-selector header file");
+		if (strcmp(d, st->tag_ext) == MATCH)
+			die(st, ERR_ACCESS, "Refusing to serve out a file-selector tag file");
+	}
 
 	/* Check for & run CGI and query scripts */
 	if (strstr(st->req_realpath, st->cgi_file) || st->req_filetype == TYPE_QUERY)

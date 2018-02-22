@@ -97,14 +97,17 @@ void parse_args(state *st, int argc, char *argv[])
 	int opt;
 
 	/* Parse args */
-	while ((opt = getopt(argc, argv, "h:p:r:t:g:a:c:u:m:l:w:o:s:i:k:f:e:R:D:L:A:P:n:db?-")) != ERROR) {
+	while ((opt = getopt(argc, argv, "h:p:r:t:g:H:T:F:a:c:u:m:l:w:o:s:i:k:f:e:R:D:L:A:P:n:db?-")) != ERROR) {
 		switch(opt) {
 			case 'h': sstrlcpy(st->server_host, optarg); break;
 			case 'p': st->server_port = atoi(optarg); break;
 			case 'r': sstrlcpy(st->server_root, optarg); break;
 			case 't': st->default_filetype = *optarg; break;
 			case 'g': sstrlcpy(st->map_file, optarg); break;
-			case 'a': sstrlcpy(st->map_file, optarg); break;
+			case 'a': sstrlcpy(st->tag_file, optarg); break;
+			case 'H': sstrlcpy(st->hdr_ext, optarg); break;
+			case 'T': sstrlcpy(st->tag_ext, optarg); break;
+			case 'F': sstrlcpy(st->ftr_ext, optarg); break;
 			case 'c': sstrlcpy(st->cgi_file, optarg); break;
 			case 'u': sstrlcpy(st->user_dir, optarg);  break;
 			case 'm': /* obsolete, replaced by -l */

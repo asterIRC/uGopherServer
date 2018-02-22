@@ -418,6 +418,9 @@ void init_state(state *st)
 	st->default_filetype = DEFAULT_TYPE;
 	sstrlcpy(st->map_file, DEFAULT_MAP);
 	sstrlcpy(st->tag_file, DEFAULT_TAG);
+	sstrlcpy(st->hdr_ext, DEFAULT_HDR_EXT);
+	sstrlcpy(st->tag_ext, DEFAULT_TAG_EXT);
+	sstrlcpy(st->ftr_ext, DEFAULT_FTR_EXT);
 	sstrlcpy(st->cgi_file, DEFAULT_CGI);
 	sstrlcpy(st->user_dir, DEFAULT_USERDIR);
 	strclear(st->log_file);

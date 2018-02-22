@@ -186,6 +186,9 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #define DEFAULT_TYPE	TYPE_TEXT
 #define DEFAULT_MAP	"gophermap"
 #define DEFAULT_TAG	"gophertag"
+#define DEFAULT_HDR_EXT	"Ghdr"
+#define DEFAULT_TAG_EXT	"Gtag"
+#define DEFAULT_FTR_EXT	"Gftr"
 #define DEFAULT_CGI	"/cgi-bin/"
 #define DEFAULT_USERDIR	"public_gopher"
 #define DEFAULT_ADDR	"unknown"
@@ -207,7 +210,7 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #ifdef __HAIKU__
 #define SAFE_PATH	"/boot/common/bin:/bin"
 #else
-#define SAFE_PATH	"/usr/bin:/bin"
+#define SAFE_PATH	"/opt/local/bin:/usr/local/bin:/usr/bin:/bin"
 #endif
 
 /* Special requests */
@@ -223,10 +226,10 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 
 /* Strings */
 #define SERVER_SOFTWARE	"Gophernicus"
-#define SERVER_SOFTWARE_FULL SERVER_SOFTWARE "/" VERSION " (%s)"
+#define SERVER_SOFTWARE_FULL SERVER_SOFTWARE "/" VERSION "-umbrellix1.0 (%s)"
 
 #define HEADER_FORMAT	"[%s]"
-#define FOOTER_FORMAT	"Gophered by Gophernicus/" VERSION " on %s"
+#define FOOTER_FORMAT	"Ecstatically rendered by Gophernicus/" VERSION " on %s"
 
 #define UNITS		"KB", "MB", "GB", "TB", "PB", NULL
 #define DATE_FORMAT	"%Y-%b-%d %H:%M"	/* See man 3 strftime */
@@ -300,6 +303,9 @@ typedef struct {
 	char default_filetype;
 	char map_file[64];
 	char tag_file[64];
+	char hdr_ext[64];
+	char tag_ext[64];
+	char ftr_ext[64];
 	char cgi_file[64];
 	char user_dir[64];
 	char log_file[256];

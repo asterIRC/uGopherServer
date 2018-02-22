@@ -14,6 +14,10 @@ Command line options:
     -u userdir    Change users personal gopherspace  [public_gopher]
     -l logfile    Log to Apache-compatible combined format logfile
 
+    -H headerext  Change extension of header file    [Ghdr]
+    -T tagext     Change extension of tag file       [Gtag]
+    -F footerext  Change extension of footer file    [Gftr]
+
     -w width      Change default page width          [70]
     -o charset    Change default output charset      [US-ASCII]
 
@@ -87,6 +91,9 @@ informational text along with the files, or if you want to completely
 replace the generated menu with your own you need to take a look at
 gophermaps. See the file README.gophermap for more information.
 
+Menus can be writ piecemeal in part if you desire to have a preamble
+before every menu item in gophernicus-umbrellix. foo.Ghdr will be a
+preamble to the item, and foo.Gftr will be the postamble.
 
 Gophertags
 ==========
@@ -99,6 +106,8 @@ will show "bar" but the links will still point to "foo". This is
 useful for creating descriptive names for directories without
 littering the file system with spaces and weird characters.
 
+This feature is also supported for files now - create a foo.Gtag
+to rename foo to the contents of the first line of foo.Gtag.
 
 Personal gopherspaces
 =====================

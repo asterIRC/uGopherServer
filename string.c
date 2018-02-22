@@ -123,7 +123,6 @@ void chomp(char *str)
 	if ((c = strrchr(str, '\r'))) *c = '\0';
 }
 
-
 /*
  * Return charset name
  */
@@ -234,7 +233,7 @@ void strniconv(int charset, char *out, char *in, size_t outsize)
 
 
 /*
- * Encode string with #OCT encoding
+ * Encode string with =OCT encoding
  */
 void strnencode(char *out, const char *in, size_t outsize)
 {
@@ -253,7 +252,7 @@ void strnencode(char *out, const char *in, size_t outsize)
 			if (outsize < 5) break;
 
 			/* Output encoded char */
-			snprintf(out, outsize, "#%.3o", c);
+			snprintf(out, outsize, "=%.3o", c);
 			out += 4;
 		}
 
@@ -290,6 +289,14 @@ void strndecode(char *out, char *in, size_t outsize)
 
 		/* Parse #octal encoding */
 		if (c == '#' && strlen(in) >= 3) {
+			sscanf(in, "%3o", &i);
+			*out++ = i;
+			in += 3;
+			continue;
+		}
+
+		/* Parse #octal encoding */
+		if (c == '=' && strlen(in) >= 3) {
 			sscanf(in, "%3o", &i);
 			*out++ = i;
 			in += 3;
