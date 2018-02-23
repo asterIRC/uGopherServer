@@ -10,7 +10,7 @@ PACKAGE = $(NAME)
 BINARY  = in.$(NAME)
 VERSION = 1.6
 
-SOURCES = $(NAME).c file.c menu.c string.c platform.c session.c options.c
+SOURCES = $(NAME).c file.c menu.c string.c platform.c session.c options.c ssl.c
 HEADERS = functions.h files.h
 OBJECTS = $(SOURCES:.c=.o)
 DOCS    = LICENSE README INSTALL TODO ChangeLog README.Gophermap gophertag
@@ -37,8 +37,8 @@ RELDIR  = /var/gopher/gophernicus.org/software/gophernicus/
 
 CC      = gcc
 HOSTCC	= $(CC)
-CFLAGS  = -O2 -Wall
-LDFLAGS = 
+CFLAGS  = -O0 -ggdb -g -Wall -lssl
+LDFLAGS = -lssl -L/usr/local/lib
 
 
 #

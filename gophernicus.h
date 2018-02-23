@@ -189,6 +189,7 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #define DEFAULT_HDR_EXT	"Ghdr"
 #define DEFAULT_TAG_EXT	"Gtag"
 #define DEFAULT_FTR_EXT	"Gftr"
+#define DEFAULT_SSL_CKF	"/nonexistant.combinedpem"
 #define DEFAULT_CGI	"/cgi-bin/"
 #define DEFAULT_USERDIR	"public_gopher"
 #define DEFAULT_ADDR	"unknown"
@@ -253,12 +254,16 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #define UNKNOWN '?'
 
 /* Sizes & maximums */
-#define BUFSIZE		1024	/* Default size for string buffers */
+#define BUFSIZE		(16*1024)	/* Default size for string buffers */
 #define MAX_HIDDEN	32	/* Maximum number of hidden files */
 #define MAX_FILETYPES	128	/* Maximum number of suffix to filetype mappings */
 #define MAX_FILTERS	16	/* Maximum number of file filters */
 #define MAX_SDIRENT	1024	/* Maximum number of files per directory to handle */
 #define MAX_REWRITE	32	/* Maximum number of selector rewrite options */
+
+
+// using one buffer now
+char sockbuf[BUFSIZE];
 
 /* Struct for file suffix -> gopher filetype mapping */
 typedef struct {
@@ -273,6 +278,14 @@ typedef struct {
 } srewrite;
 
 /* Struct for keeping the current options & state */
+
+typedef struct {
+	void *sslh;
+	void *sslctx;
+	int rfd;
+	int wfd;
+} sockstate;
+
 typedef struct {
 
 	/* Request */
@@ -280,15 +293,19 @@ typedef struct {
 	char req_realpath[BUFSIZE];
 	char req_query_string[BUFSIZE];
 	char req_referrer[BUFSIZE];
+	char protection_certkeyfile[BUFSIZE];
 	char req_local_addr[64];
 	char req_remote_addr[64];
 	char req_filetype;
 	char req_protocol;
 	off_t req_filesize;
+	uid_t drop_uid;
+	gid_t drop_gid;
 
 	/* Output */
 	int out_width;
 	int out_charset;
+	int out_protection;
 
 	/* Settings */
 	char server_description[64];
@@ -325,6 +342,10 @@ typedef struct {
 	int session_max_kbytes;
 	int session_max_hits;
 
+	int (*read)(void *, char *, size_t);
+	int (*write)(void *, const char *, size_t);
+	char *(*fgets)(char *, size_t, void *);
+
 	/* Feature options */
 	char opt_parent;
 	char opt_header;
@@ -339,6 +360,10 @@ typedef struct {
 	char opt_shm;
 	char opt_root;
 	char debug;
+
+	/* Preparing for future evented version of Gophernicus+Aster,
+	 * socket state. Also used for SSL support, where available */
+	sockstate ss;
 } state;
 
 /* Shared memory for session & accounting data */

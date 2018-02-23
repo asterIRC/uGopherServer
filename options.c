@@ -97,7 +97,9 @@ void parse_args(state *st, int argc, char *argv[])
 	int opt;
 
 	/* Parse args */
-	while ((opt = getopt(argc, argv, "h:p:r:t:g:H:T:F:a:c:u:m:l:w:o:s:i:k:f:e:R:D:L:A:P:n:db?-")) != ERROR) {
+	st->out_protection = !TRUE;
+
+	while ((opt = getopt(argc, argv, "h:p:r:t:g:H:T:F:a:c:u:m:l:w:o:s:i:k:f:e:R:D:L:A:P:S:n:db?-")) != ERROR) {
 		switch(opt) {
 			case 'h': sstrlcpy(st->server_host, optarg); break;
 			case 'p': st->server_port = atoi(optarg); break;
@@ -117,6 +119,10 @@ void parse_args(state *st, int argc, char *argv[])
 			case 'o':
 				if (sstrncasecmp(optarg, "UTF-8") == MATCH) st->out_charset = UTF_8;
 				if (sstrncasecmp(optarg, "ISO-8859-1") == MATCH) st->out_charset = ISO_8859_1;
+				break;
+			case 'S':
+				st->out_protection = TRUE;
+				sstrlcpy(st->protection_certkeyfile, optarg);
 				break;
 
 			case 's': st->session_timeout = atoi(optarg); break;

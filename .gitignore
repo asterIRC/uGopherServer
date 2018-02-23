@@ -2,6 +2,7 @@
 # Build leftovers
 #
 *.o
+*.bak
 files.h
 functions.h
 README.options

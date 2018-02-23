@@ -24,19 +24,20 @@
 
 
 #include "gophernicus.h"
-
+#include "openssl/ssl.h"
+//#include "ssl.c"
 
 /*
  * Print gopher menu line
  */
 void info(state *st, char *str, char type)
 {
-	char buf[BUFSIZE];
+	char outstr[BUFSIZE];
 	char selector[16];
 
 	/* Convert string to output charset */
-	if (st->opt_iconv) sstrniconv(st->out_charset, buf, str);
-	else sstrlcpy(buf, str);
+	if (st->opt_iconv) sstrniconv(st->out_charset, outstr, str);
+	else sstrlcpy(outstr, str);
 
 	/* Handle gopher title resources */
 	strclear(selector);
@@ -46,9 +47,10 @@ void info(state *st, char *str, char type)
 	}
 
 	/* Output info line */
-	strcut(buf, st->out_width);
-	printf("%c%s\t%s\t%s" CRLF,
-		type, buf, selector, DUMMY_HOST);
+	strcut(outstr, st->out_width);
+	snprintf(sockbuf, BUFSIZE, "%c%s\t%s\t%s" CRLF,
+		type, outstr, selector, DUMMY_HOST);
+	((st->write)) (&(st->ss), sockbuf, strlen(sockbuf));
 }
 
 
@@ -63,9 +65,13 @@ void footer(state *st)
 
 	if (!st->opt_footer) {
 #ifndef ENABLE_STRICT_RFC1436
-		if (st->req_filetype == TYPE_MENU || st->req_filetype == TYPE_QUERY)
+		if (st->req_filetype == TYPE_MENU || st->req_filetype == TYPE_QUERY) {
+#else
+		if (1) {
 #endif
-			printf("." CRLF);
+			snprintf(sockbuf, BUFSIZE, "." CRLF);
+			((st->write)) (&(st->ss), sockbuf, strlen(sockbuf));
+		}
 		return;
 	}
 
@@ -73,22 +79,27 @@ void footer(state *st)
 	strrepeat(line, '_', st->out_width);
 
 	/* Create right-aligned footer message */
-	snprintf(buf, sizeof(buf), FOOTER_FORMAT, st->server_platform);
+	snprintf(buf, BUFSIZE, FOOTER_FORMAT, st->server_platform);
+	((st->write)) (&(st->ss), sockbuf, strlen(sockbuf));
 	snprintf(msg, sizeof(msg), "%*s", st->out_width - 1, buf);
 
 	/* Menu footer? */
 	if (st->req_filetype == TYPE_MENU || st->req_filetype == TYPE_QUERY) {
 		info(st, line, TYPE_INFO);
 		info(st, msg, TYPE_INFO);
-		printf("." CRLF);
+		snprintf(sockbuf, BUFSIZE, "." CRLF);
+		((st->write)) (&(st->ss), sockbuf, strlen(sockbuf));
 	}
 
 	/* Plain text footer */
 	else {
-		printf("%s" CRLF, line);
-		printf("%s" CRLF, msg);
+		snprintf(sockbuf, BUFSIZE, "%s" CRLF, line);
+		((st->write)) (&(st->ss), sockbuf, strlen(sockbuf));
+		snprintf(sockbuf, BUFSIZE, "%s" CRLF, msg);
+		((st->write)) (&(st->ss), sockbuf, strlen(sockbuf));
 #ifdef ENABLE_STRICT_RFC1436
-		printf("." CRLF);
+		snprintf(sockbuf, BUFSIZE, "." CRLF);
+		((st->write)) (&(st->ss), sockbuf, strlen(sockbuf));
 #endif
 	}
 }
@@ -99,6 +110,7 @@ void footer(state *st)
  */
 void die(state *st, char *message, char *description)
 {
+	char buf[BUFSIZE];
 	int en = errno;
 	static const char error_gif[] = ERROR_GIF;
 
@@ -114,31 +126,34 @@ void die(state *st, char *message, char *description)
 
 	/* Handle menu errors */
 	if (st->req_filetype == TYPE_MENU || st->req_filetype == TYPE_QUERY) {
-		printf("3" ERROR_PREFIX "%s\tTITLE\t" DUMMY_HOST CRLF, message);
+		snprintf(sockbuf, BUFSIZE, "3" ERROR_PREFIX "%s\tTITLE\t" DUMMY_HOST CRLF, message);
+		((st->write)) (&(st->ss), sockbuf, strlen(sockbuf));
 		footer(st);
 	}
 
 	/* Handle image errors */
 	else if (st->req_filetype == TYPE_GIF || st->req_filetype == TYPE_IMAGE) {
-		fwrite(error_gif, sizeof(error_gif), 1, stdout);
+		((st->write)) (&(st->ss), error_gif, sizeof(error_gif));
 	}
 
 	/* Handle HTML errors */
 	else if (st->req_filetype == TYPE_HTML) {
-		printf("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
+		snprintf(buf, BUFSIZE, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
 			"<HTML>\n<HEAD>\n"
 			"  <META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html;charset=iso-8859-1\">\n"
 			"  <TITLE>" ERROR_PREFIX "%1$s</TITLE>\n"
 			"</HEAD>\n<BODY>\n"
 			"<STRONG>" ERROR_PREFIX "%1$s</STRONG>\n"
 			"<PRE>\n", message);
+		((st->write)) (&(st->ss), sockbuf, strlen(sockbuf));
 		footer(st);
-		printf("</PRE>\n</BODY>\n</HTML>\n");
+		snprintf(buf, BUFSIZE, "</PRE>\n</BODY>\n</HTML>\n");
 	}
 
 	/* Use plain text error for other filetypes */
 	else {
-		printf(ERROR_PREFIX "%s" CRLF, message);
+		snprintf(sockbuf, BUFSIZE, ERROR_PREFIX "%s" CRLF, message);
+		((st->write)) (&(st->ss), sockbuf, strlen(sockbuf));
 		footer(st);
 	}
 
@@ -204,7 +219,7 @@ void selector_to_path(state *st)
 		if (strstr(st->req_selector, st->rewrite[i].match) == st->req_selector) {
 
 			/* Replace match with a new string */
-			snprintf(buf, sizeof(buf), "%s%s",
+			snprintf(buf, BUFSIZE, "%s%s",
 				st->rewrite[i].replace,
 				st->req_selector + strlen(st->rewrite[i].match));
 
@@ -219,7 +234,7 @@ void selector_to_path(state *st)
 
 #ifdef HAVE_PASSWD
 	/* Virtual userdir (~user -> /home/user/public_gopher)? */
-	if (*(st->user_dir) && sstrncmp(st->req_selector, "/~") == MATCH) {
+	if ((st->user_dir) && sstrncmp(st->req_selector, "/~") == MATCH) {
 
 		/* Parse userdir login name & path */;
 		sstrlcpy(buf, st->req_selector + 2);
@@ -403,6 +418,7 @@ void init_state(state *st)
 	/* Output */
 	st->out_width = DEFAULT_WIDTH;
 	st->out_charset = DEFAULT_CHARSET;
+	st->out_protection = FALSE;
 
 	/* Settings */
 	sstrlcpy(st->server_root, DEFAULT_ROOT);
@@ -410,7 +426,7 @@ void init_state(state *st)
 
 	if ((c = getenv("HOSTNAME")))
 		sstrlcpy(st->server_host, c);
-	else if ((gethostname(buf, sizeof(buf))) != ERROR)
+	else if ((gethostname(buf, BUFSIZE)) != ERROR)
 		sstrlcpy(st->server_host, buf);
 
 	st->server_port = DEFAULT_PORT;
@@ -421,6 +437,7 @@ void init_state(state *st)
 	sstrlcpy(st->hdr_ext, DEFAULT_HDR_EXT);
 	sstrlcpy(st->tag_ext, DEFAULT_TAG_EXT);
 	sstrlcpy(st->ftr_ext, DEFAULT_FTR_EXT);
+	sstrlcpy(st->protection_certkeyfile, DEFAULT_SSL_CKF);
 	sstrlcpy(st->cgi_file, DEFAULT_CGI);
 	sstrlcpy(st->user_dir, DEFAULT_USERDIR);
 	strclear(st->log_file);
@@ -497,10 +514,45 @@ int main(int argc, char *argv[])
 	/* Handle command line arguments */
 	parse_args(&st, argc, argv);
 
+	if (st.out_protection && strlen(st.protection_certkeyfile) > 2) {
+		char pathname[BUFSIZE];
+		snprintf(pathname, sizeof(pathname), "%s",
+                        st.protection_certkeyfile);
+		if (stat(pathname, &file) == OK &&
+			(file.st_mode & S_IFMT) != S_IFREG) {
+			die(&st, ERR_ACCESS, "Unrecoverable SSL error: certificate and key bundle file not found or not regular");
+		};
+		st.ss.wfd = 1;
+		st.ss.rfd = 0;
+		st.ss.sslctx = (void *)SSL_CTX_new(SSLv23_server_method());
+		SSL_CTX_set_options(st.ss.sslctx, SSL_OP_SINGLE_DH_USE);
+		int use_cert, use_pkey;
+		use_cert = SSL_CTX_use_certificate_chain_file((SSL_CTX*)&st.ss.sslctx, st.protection_certkeyfile);
+		use_pkey = SSL_CTX_use_PrivateKey_file((SSL_CTX*)&st.ss.sslctx, st.protection_certkeyfile, SSL_FILETYPE_PEM);
+		st.ss.sslh = (void *)SSL_new(st.ss.sslctx);
+		SSL_set_wfd((SSL*)st.ss.sslh, st.ss.wfd);
+		SSL_set_rfd((SSL*)st.ss.sslh, st.ss.rfd);
+		if (SSL_accept((SSL*)st.ss.sslh) <= 0) {
+			snprintf(buf, BUFSIZE, "Unrecoverable SSL error post accept");
+			die(&st, ERR_ACCESS, buf);
+		} else {
+			st.read = &ssl_read;
+			st.write = &ssl_write;
+			st.fgets = &ssl_fgets;
+		}
+	} else {
+		st.ss.wfd = 1;
+		st.ss.rfd = 0;
+		st.read = &plain_read;
+		st.write = &plain_write;
+		st.fgets = &plain_fgets;
+	}
+
 	/* Open syslog() */
 	if (st.opt_syslog) openlog(self, LOG_PID, LOG_DAEMON);
 
-	/* Make sure the computer is turned on */
+	/* Make sure the computer is turned on -- joke function in
+	   BeOS */
 #ifdef __HAIKU__
 	if (is_computer_on() != TRUE)
 		die(&st, ERR_ACCESS, "Please turn on the computer first");
@@ -551,7 +603,7 @@ int main(int argc, char *argv[])
 		platform(&st);
 
 	/* Read selector */
-	if (fgets(selector, sizeof(selector) - 1, stdin) == NULL)
+	if ((st.fgets)(selector, sizeof(selector) - 1, &st.ss) == NULL)
 		selector[0] = '\0';
 
 	/* Remove trailing CRLF */
@@ -569,12 +621,16 @@ int main(int argc, char *argv[])
 
 	/* Handle gopher+ root requests (UMN gopher client is seriously borken) */
 	if (sstrncmp(selector, "\t$") == MATCH) {
-		printf("+-1" CRLF);
-		printf("+INFO: 1Main menu\t\t%s\t%i" CRLF,
+		snprintf(sockbuf, BUFSIZE, "+-1" CRLF);
+		((st.write)) ((void*)&st.ss, sockbuf, strlen(sockbuf));
+		snprintf(sockbuf, BUFSIZE, "+INFO: 1Main menu\t\t%s\t%i" CRLF,
 			st.server_host,
 			st.server_port);
-		printf("+VIEWS:" CRLF " application/gopher+-menu: <512b>" CRLF);
-		printf("." CRLF);
+		((st.write)) ((void*)&st.ss, sockbuf, strlen(sockbuf));
+		snprintf(sockbuf, BUFSIZE, "+VIEWS:" CRLF " application/gopher+-menu: <512b>" CRLF);
+		((st.write)) ((void*)&st.ss, sockbuf, strlen(sockbuf));
+		snprintf(sockbuf, BUFSIZE, "." CRLF);
+		((st.write)) ((void*)&st.ss, sockbuf, strlen(sockbuf));
 
 		if (st.debug) syslog(LOG_INFO, "got a request for gopher+ root menu");
 		return OK;

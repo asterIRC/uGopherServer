@@ -122,13 +122,15 @@ void userlist(state *st)
 			ltime = localtime(&dir.st_mtime);
 			strftime(timestr, sizeof(timestr), DATE_FORMAT, ltime);
 
-			printf("1%-*.*s   %s        -  \t/~%s/\t%s\t%i" CRLF,
+			snprintf(sockbuf, BUFSIZE, "1%-*.*s   %s        -  \t/~%s/\t%s\t%i" CRLF,
 				width, width, buf, timestr, pwd->pw_name,
 				st->server_host, st->server_port);
+			(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 		}
 		else {
-			printf("1%.*s\t/~%s/\t%s\t%i" CRLF, st->out_width, buf,
+			snprintf(sockbuf, BUFSIZE, "1%.*s\t/~%s/\t%s\t%i" CRLF, st->out_width, buf,
 				pwd->pw_name, st->server_host_default, st->server_port);
+			(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 		}
 	}
 
@@ -178,15 +180,17 @@ void vhostlist(state *st)
 			ltime = localtime(&dir[i].mtime);
 			strftime(timestr, sizeof(timestr), DATE_FORMAT, ltime);
 
-			printf("1%-*.*s   %s        -  \t/;%s\t%s\t%i" CRLF,
+			snprintf(sockbuf, BUFSIZE, "1%-*.*s   %s        -  \t/;%s\t%s\t%i" CRLF,
 				width, width, buf, timestr, dir[i].name, 
 				dir[i].name, st->server_port);
+			(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 		}
 
 		/* Teh boring version */
 		else {
-			printf("1%.*s\t/;%s\t%s\t%i" CRLF, st->out_width, buf,
+			snprintf(sockbuf, BUFSIZE, "1%.*s\t/;%s\t%s\t%i" CRLF, st->out_width, buf,
 				dir[i].name, dir[i].name, st->server_port);
+			(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 		}
 	}
 }
@@ -392,14 +396,17 @@ int gophermap(state *st, char *mapfile, int depth)
 		    selector[0] == '/' ||
 		    host != st->server_host) {
 
-			printf("%c%s\t%s\t%s\t%i" CRLF, type, name,
+			snprintf(sockbuf, BUFSIZE, "%c%s\t%s\t%s\t%i" CRLF, type, name,
 				selector, host, port);
+			(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
+
 		}
 
 		/* Handle relative resources */
 		else {
-			printf("%c%s\t%s%s\t%s\t%i" CRLF, type, name,
+			snprintf(sockbuf, BUFSIZE, "%c%s\t%s%s\t%s\t%i" CRLF, type, name,
 				st->req_selector, selector, host, port);
+			(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 
 			/* Automatically hide manually defined selectors */
 #ifdef ENABLE_AUTOHIDING
@@ -514,9 +521,10 @@ void gopher_menu(state *st)
 			if (strcmp(parent, ROOT) == MATCH) parent++;
 
 			/* Print link */
-			printf("1%-*s\t%s/\t%s\t%i" CRLF,
+			snprintf(sockbuf, BUFSIZE, "1%-*s\t%s/\t%s\t%i" CRLF,
 				st->opt_date ? (st->out_width - 1) : (int) strlen(PARENT),
 				PARENT, parent, st->server_host, st->server_port);
+			(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 		}
 	}
 
@@ -529,6 +537,7 @@ void gopher_menu(state *st)
 		/* Get full path+name */
 		snprintf(pathname, sizeof(pathname), "%s/%s",
 			st->req_realpath, dir[i].name);
+		(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 
 		/* Skip dotfiles and non world-readables */
 		if (dir[i].name[0] == '.') continue;
@@ -614,7 +623,7 @@ void gopher_menu(state *st)
 				n = width - strcut(displayname, width);
 				strrepeat(buf, ' ', n);
 
-				printf("1%s%s   %s        -  \t%s%s/\t%s\t%i" CRLF,
+				snprintf(sockbuf, BUFSIZE, "1%s%s   %s        -  \t%s%s/\t%s\t%i" CRLF,
 					displayname,
 					buf,
 					timestr,
@@ -622,17 +631,19 @@ void gopher_menu(state *st)
 					encodedname,
 					st->server_host,
 					st->server_port);
+				(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 			}
 
 			/* Regular dir listing */
 			else {
 				strcut(displayname, st->out_width);
-				printf("1%s\t%s%s/\t%s\t%i" CRLF,
+				snprintf(sockbuf, BUFSIZE, "1%s\t%s%s/\t%s\t%i" CRLF,
 					displayname,
 					st->req_selector,
 					encodedname,
 					st->server_host,
 					st->server_port);
+				(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 			}
 
 			continue;
@@ -680,7 +691,7 @@ void gopher_menu(state *st)
 			n = width - strcut(displayname, width);
 			strrepeat(buf, ' ', n);
 
-			printf("%c%s%s   %s %s\t%s%s\t%s\t%i" CRLF, type,
+			snprintf(sockbuf, BUFSIZE, "%c%s%s   %s %s\t%s%s\t%s\t%i" CRLF, type,
 				displayname,
 				buf,
 				timestr,
@@ -689,17 +700,19 @@ void gopher_menu(state *st)
 				encodedname,
 				st->server_host,
 				st->server_port);
+			(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 		}
 
 		/* Regular file listing */
 		else {
 			strcut(displayname, st->out_width);
-			printf("%c%s\t%s%s\t%s\t%i" CRLF, type,
+			snprintf(sockbuf, BUFSIZE, "%c%s\t%s%s\t%s\t%i" CRLF, type,
 				displayname,
 				st->req_selector,
 				encodedname,
 				st->server_host,
 				st->server_port);
+			(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 		}
 
 

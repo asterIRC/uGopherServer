@@ -31,19 +31,7 @@
  */
 void send_binary_file(state *st)
 {
-	/* Faster sendfile() version */
-#ifdef HAVE_SENDFILE
-	int fd;
-	off_t offset = 0;
-
-	if (st->debug) syslog(LOG_INFO, "outputting binary file \"%s\"", st->req_realpath);
-
-	if ((fd = open(st->req_realpath, O_RDONLY)) == ERROR) return;
-	sendfile(1, fd, &offset, st->req_filesize);
-	close(fd);
-
-	/* More compatible POSIX fread()/fwrite() version */
-#else
+	/* More compatible POSIX fread()/fwrite() version, now mandatory as SSL */
 	FILE *fp;
 	char buf[BUFSIZE];
 	int bytes;
@@ -52,9 +40,8 @@ void send_binary_file(state *st)
 
 	if ((fp = fopen(st->req_realpath , "r")) == NULL) return;
 	while ((bytes = fread(buf, 1, sizeof(buf), fp)) > 0)
-		fwrite(buf, bytes, 1, stdout);
+		(*st->write) (&(st->ss), buf, bytes);
 	fclose(fp);
-#endif
 }
 
 
@@ -83,15 +70,16 @@ void send_text_file(state *st)
 		chomp(out);
 
 #ifdef ENABLE_STRICT_RFC1436
-		if (strcmp(out, ".") == MATCH) printf(".." CRLF);
+		if (strcmp(out, ".") == MATCH) snprintf(sockbuf, BUFSIZE, ".." CRLF);
 		else
 #endif
-		printf("%s" CRLF, out);
+		snprintf(sockbuf, BUFSIZE, "%s" CRLF, out);
+		(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 		line++;
 	}
 
 #ifdef ENABLE_STRICT_RFC1436
-	printf("." CRLF);
+	snprintf(sockbuf, BUFSIZE, "." CRLF);
 #endif
 	fclose(fp);
 }
@@ -129,7 +117,7 @@ void url_redirect(state *st)
 	log_combined(st, HTTP_OK);
 
 	/* Output HTML */
-	printf("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
+	snprintf(sockbuf, BUFSIZE, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
 		"<HTML>\n<HEAD>\n"
 		"  <META HTTP-EQUIV=\"Refresh\" content=\"1;URL=%1$s\">\n"
 		"  <META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html;charset=iso-8859-1\">\n"
@@ -137,8 +125,11 @@ void url_redirect(state *st)
 		"</HEAD>\n<BODY>\n"
 		"<STRONG>Redirecting to <A HREF=\"%1$s\">%1$s</A></STRONG>\n"
 		"<PRE>\n", dest);
+	(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
+
 	footer(st);
-	printf("</PRE>\n</BODY>\n</HTML>\n");
+	snprintf(sockbuf, BUFSIZE, "</PRE>\n</BODY>\n</HTML>\n");
+	(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 }
 
 
@@ -178,7 +169,7 @@ void server_status(state *st, shm_state *shm, int shmid)
 	shmctl(shmid, IPC_STAT, &shm_ds);
 
 	/* Print statistics */
-	printf("Total Accesses: %li" CRLF
+	snprintf(sockbuf, BUFSIZE, "Total Accesses: %li" CRLF
 		"Total kBytes: %li" CRLF
 		"Uptime: %i" CRLF
 		"ReqPerSec: %.3f" CRLF
@@ -203,7 +194,7 @@ void server_status(state *st, shm_state *shm, int shmid)
 		if ((now - shm->session[i].req_atime) < st->session_timeout) {
 			sessions++;
 
-			printf("Session: %-4i %-40s %-4li %-7li gopher://%s:%i/%c%s" CRLF,
+			snprintf(sockbuf, BUFSIZE, "Session: %-4i %-40s %-4li %-7li gopher://%s:%i/%c%s" CRLF,
 				(int) (now - shm->session[i].req_atime),
 				shm->session[i].req_remote_addr,
 				shm->session[i].hits,
@@ -215,7 +206,8 @@ void server_status(state *st, shm_state *shm, int shmid)
 		}
 	}
 
-	printf("Total Sessions: %i" CRLF, sessions);
+	snprintf(sockbuf, BUFSIZE, "Total Sessions: %i" CRLF, sessions);
+	(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 }
 #endif
 
@@ -247,7 +239,7 @@ void caps_txt(state *st, shm_state *shm)
 #endif
 
 	/* Standard caps.txt stuff */
-	printf("CAPS" CRLF
+	snprintf(sockbuf, BUFSIZE, "CAPS" CRLF
 		CRLF
 		"##" CRLF
 		"## This is an automatically generated caps file." CRLF
@@ -267,14 +259,22 @@ void caps_txt(state *st, shm_state *shm)
 		"ServerArchitecture=%s" CRLF,
 			st->session_timeout,
 			st->server_platform);
+	(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
+
 
 	/* Optional keys */
-	if (*st->server_description)
-		printf("ServerDescription=%s" CRLF, st->server_description);
-	if (*st->server_location)
-		printf("ServerGeolocationString=%s" CRLF, st->server_location);
-	if (*st->server_admin)
-		printf("ServerAdmin=%s" CRLF, st->server_admin);
+	if (*st->server_description) {
+		snprintf(sockbuf, BUFSIZE, "ServerDescription=%s" CRLF, st->server_description);
+		(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
+	}
+	if (*st->server_location) {
+		snprintf(sockbuf, BUFSIZE, "ServerGeolocationString=%s" CRLF, st->server_location);
+		(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
+	}
+	if (*st->server_admin) {
+		snprintf(sockbuf, BUFSIZE, "ServerAdmin=%s" CRLF, st->server_admin);
+		(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
+	}
 }
 
 
