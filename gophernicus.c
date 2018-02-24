@@ -568,13 +568,14 @@ int main(int argc, char *argv[])
   notused:
 			syslog(LOG_ERR, "%s", buf);
 	/* Try to open the logfile for appending */
-	if (st.log_file) return;
-	if ((fp = fopen(st.log_file , "a")) == NULL) return;
+			if (st.log_file) {
+				if ((fp = fopen(st.log_file , "a")) == NULL) exit(0);
 
-	SSL_load_error_strings();
-	/* Generate log entry */
-	ERR_print_errors_fp(fp);
-	fclose(fp);
+				SSL_load_error_strings();
+				/* Generate log entry */
+				ERR_print_errors_fp(fp);
+				fclose(fp);
+			}
 			exit(0);
 		}
 		st.read = &ssl_read;
