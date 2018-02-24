@@ -366,10 +366,10 @@ char *get_peer_address(void)
 #endif
 	char *c;
 
-	/* Are we a CGI script? */
-	if ((c = getenv("REMOTE_ADDR"))) return c;
 	// Are we a stunnel thing? It's likely, since our own SSL isn't great
 	if ((c = getenv("REMOTE_HOST"))) return c;
+	/* Are we a CGI script? */
+	if ((c = getenv("REMOTE_ADDR"))) return c;
 
 	/* Try IPv4 first */
 #ifdef HAVE_IPv4
