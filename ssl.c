@@ -93,7 +93,7 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 		}
 	}
 	if (i+1 < BUFSIZE) ourbuf[i+1] = 0;
-	else ourbuf[BUFSIZE] = 0;
+	else ourbuf[BUFSIZE-1] = 0;
 	strlcpy(buf, ourbuf, i);
 	return buf;
 };
