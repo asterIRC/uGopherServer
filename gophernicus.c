@@ -25,6 +25,8 @@
 
 #include "gophernicus.h"
 #include "openssl/ssl.h"
+#include "openssl/bio.h"
+#include "openssl/err.h"
 //#include "ssl.c"
 
 /*
@@ -366,7 +368,8 @@ char *get_peer_address(void)
 
 	/* Are we a CGI script? */
 	if ((c = getenv("REMOTE_ADDR"))) return c;
-	/* if ((c = getenv("REMOTE_HOST"))) return c; */
+	// Are we a stunnel thing? It's likely, since our own SSL isn't great
+	if ((c = getenv("REMOTE_HOST"))) return c;
 
 	/* Try IPv4 first */
 #ifdef HAVE_IPv4
@@ -500,6 +503,8 @@ int main(int argc, char *argv[])
 	shm_state *shm;
 	int shmid;
 #endif
+	FILE *fp;
+	char osslerr[BUFSIZE];
 
 	/* Get the name of this binary */
 	if ((c = strrchr(argv[0], '/'))) sstrlcpy(self, c + 1);
@@ -522,24 +527,59 @@ int main(int argc, char *argv[])
 			(file.st_mode & S_IFMT) != S_IFREG) {
 			die(&st, ERR_ACCESS, "Unrecoverable SSL error: certificate and key bundle file not found or not regular");
 		};
-		st.ss.wfd = 1;
-		st.ss.rfd = 0;
+		st.ss.wfd = fileno(stdout);
+		st.ss.rfd = fileno(stdin);
 		st.ss.sslctx = (void *)SSL_CTX_new(SSLv23_server_method());
 		SSL_CTX_set_options(st.ss.sslctx, SSL_OP_SINGLE_DH_USE);
-		int use_cert, use_pkey;
-		use_cert = SSL_CTX_use_certificate_chain_file((SSL_CTX*)&st.ss.sslctx, st.protection_certkeyfile);
-		use_pkey = SSL_CTX_use_PrivateKey_file((SSL_CTX*)&st.ss.sslctx, st.protection_certkeyfile, SSL_FILETYPE_PEM);
+		int use_cert, use_pkey, reterr;
+		use_cert = SSL_CTX_use_certificate_chain_file((SSL_CTX*)(st.ss.sslctx), st.protection_certkeyfile);
+		use_pkey = SSL_CTX_use_PrivateKey_file((SSL_CTX*)(st.ss.sslctx), st.protection_certkeyfile, SSL_FILETYPE_PEM);
 		st.ss.sslh = (void *)SSL_new(st.ss.sslctx);
-		SSL_set_wfd((SSL*)st.ss.sslh, st.ss.wfd);
-		SSL_set_rfd((SSL*)st.ss.sslh, st.ss.rfd);
-		if (SSL_accept((SSL*)st.ss.sslh) <= 0) {
-			snprintf(buf, BUFSIZE, "Unrecoverable SSL error post accept");
-			die(&st, ERR_ACCESS, buf);
-		} else {
-			st.read = &ssl_read;
-			st.write = &ssl_write;
-			st.fgets = &ssl_fgets;
+		SSL_set_wfd((SSL*)st.ss.sslh, fileno(stdout));
+		SSL_set_rfd((SSL*)st.ss.sslh, fileno(stdin));
+		SSL_load_error_strings();
+		while ((reterr = SSL_do_handshake((SSL*)st.ss.sslh)) <= 0) {
+			int errcode = ERR_get_error();
+			ERR_error_string_n(errcode, osslerr, 1024);
+			switch (SSL_get_error((SSL*)st.ss.sslh, reterr)) {
+				case SSL_ERROR_ZERO_RETURN:
+				snprintf(buf, BUFSIZE, "Unrecoverable SSL error post accept: zero return");
+				break;
+				case SSL_ERROR_WANT_READ:
+				case SSL_ERROR_WANT_WRITE:
+				case SSL_ERROR_WANT_CONNECT:
+				case SSL_ERROR_WANT_ACCEPT:
+				case SSL_ERROR_WANT_X509_LOOKUP:
+				goto continuation;
+				break;
+				case SSL_ERROR_SYSCALL:
+				snprintf(buf, BUFSIZE, "Unrecoverable SSL error post accept: syscall error %s", strerror(errno));
+				break;
+				case SSL_ERROR_SSL:
+				snprintf(buf, BUFSIZE, "Unrecoverable SSL error post accept: SSL protocol error. And, %s.", errcode == 0 ? "No SSL error." : osslerr);
+				break;
+			}
+  goto notused;
+
+  continuation:
+
+  continue;
+
+  notused:
+			syslog(LOG_ERR, "%s", buf);
+	/* Try to open the logfile for appending */
+	if (st.log_file) return;
+	if ((fp = fopen(st.log_file , "a")) == NULL) return;
+
+	SSL_load_error_strings();
+	/* Generate log entry */
+	ERR_print_errors_fp(fp);
+	fclose(fp);
+			exit(0);
 		}
+		st.read = &ssl_read;
+		st.write = &ssl_write;
+		st.fgets = &ssl_fgets;
 	} else {
 		st.ss.wfd = 1;
 		st.ss.rfd = 0;

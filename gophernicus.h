@@ -254,7 +254,7 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #define UNKNOWN '?'
 
 /* Sizes & maximums */
-#define BUFSIZE		(16*1024)	/* Default size for string buffers */
+#define BUFSIZE		(4*1024)	/* Default size for string buffers */
 #define MAX_HIDDEN	32	/* Maximum number of hidden files */
 #define MAX_FILETYPES	128	/* Maximum number of suffix to filetype mappings */
 #define MAX_FILTERS	16	/* Maximum number of file filters */
@@ -263,7 +263,7 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 
 
 // using one buffer now
-char sockbuf[BUFSIZE];
+char sockbuf[BUFSIZE*8];
 
 /* Struct for file suffix -> gopher filetype mapping */
 typedef struct {

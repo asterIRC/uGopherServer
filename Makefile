@@ -37,8 +37,8 @@ RELDIR  = /var/gopher/gophernicus.org/software/gophernicus/
 
 CC      = gcc
 HOSTCC	= $(CC)
-CFLAGS  = -O0 -ggdb -g -Wall -lssl
-LDFLAGS = -lssl -L/usr/local/lib
+CFLAGS  = -O0 -g -Wall -L/usr/lib -I/usr/include -lcrypto
+LDFLAGS = -lssl -L/usr/lib -lcrypto
 
 
 #
