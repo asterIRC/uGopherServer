@@ -367,7 +367,10 @@ char *get_peer_address(void)
 	char *c;
 
 	// Are we a stunnel thing? It's likely, since our own SSL isn't great
-	if ((c = getenv("REMOTE_HOST"))) return c;
+	if ((c = getenv("REMOTE_HOST"))) {
+		syslog(LOG_ERROR, "the client's address according to the calling programme is %s", getenv("REMOTE_HOST"));
+		return c;
+	}
 	/* Are we a CGI script? */
 	if ((c = getenv("REMOTE_ADDR"))) return c;
 
