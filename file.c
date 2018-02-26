@@ -367,10 +367,6 @@ void run_cgi(state *st, char *script, char *arg)
 				(*st->write) (&(st->ss), buf, bytes);
 			kill(proc, 9);
 	}
-
-	if (st.out_protection && strlen(st.protection_certkeyfile) > 2) {
-		SSL_shutdown(st.ss.sslh);
-	}
 }
 
 
@@ -428,6 +424,11 @@ void gopher_file(state *st)
 		send_text_file(st);
 	else
 		send_binary_file(st);
+
+
+	if (st->out_protection && strlen(st->protection_certkeyfile) > 2) {
+		SSL_shutdown(st->ss.sslh);
+	}
 	exit(0);
 }
 
