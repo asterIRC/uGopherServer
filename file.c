@@ -428,6 +428,7 @@ void gopher_file(state *st)
 		send_text_file(st);
 	else
 		send_binary_file(st);
+	exit(0);
 }
 
 
