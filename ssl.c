@@ -81,7 +81,7 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 
 	for (i = 0; i < count && i < BUFSIZE; i++) {
 		continuate:
-		if ((j = SSL_read( (SSL*)(ss->sslh), ours, BUFSIZE - 1)) <= 0) {
+		if ((j = SSL_read( (SSL*)(ss->sslh), ours, BUFSIZE - i - 1)) <= 0) {
 			int errcode = ERR_get_error();
 			ERR_error_string_n(errcode, osslerr, BUFSIZE - 1);
 			switch (SSL_get_error((SSL*)(ss->sslh), j)) {
@@ -103,7 +103,7 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 				break;
 			}
 		} else {
-			ours = ours + j;
+			ours = ours + j + 1;
 			i = i + j;
 			if (ourbuf[i] == '\n') {
 				break;
