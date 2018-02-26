@@ -104,7 +104,7 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 			}
 		} else {
 			ours = ours + j;
-			i = i + j - 1;
+			i = i + j;
 			if (ourbuf[i] == '\n') {
 				break;
 			}
