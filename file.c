@@ -22,7 +22,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
+#include "signal.h"
 #include "gophernicus.h"
 
 
@@ -349,9 +349,9 @@ void run_cgi(state *st, char *script, char *arg)
 
 	setenv_cgi(st, script);
 	int pipedesc[2];
-	int bytes;
+	int bytes, proc;
 	socketpair(AF_UNIX, SOCK_STREAM, 0, pipedesc);
-	switch (vfork()) {
+	switch (proc = vfork()) {
 		case 0:
 			dup2(pipedesc[1], fileno(stdin));
 			dup2(pipedesc[1], fileno(stdout));
@@ -365,11 +365,12 @@ void run_cgi(state *st, char *script, char *arg)
 		default:
 			while ((bytes = read(pipedesc[0], buf, BUFSIZE)) > 0)
 				(*st->write) (&(st->ss), buf, bytes);
+			kill(proc, 9);
 	}
 
-//	if (st.out_protection && strlen(st.protection_certkeyfile) > 2) {
-//		SSL_shutdown(st.ss.sslh);
-//	}
+	if (st.out_protection && strlen(st.protection_certkeyfile) > 2) {
+		SSL_shutdown(st.ss.sslh);
+	}
 }
 
 
