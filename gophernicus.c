@@ -27,6 +27,8 @@
 #include "openssl/ssl.h"
 #include "openssl/bio.h"
 #include "openssl/err.h"
+#include "fcntl.h"
+#include "signal.h"
 //#include "ssl.c"
 
 /*
@@ -512,6 +514,10 @@ int main(int argc, char *argv[])
 	FILE *fp;
 	char osslerr[BUFSIZE];
 
+	fcntl(0, F_SETFD, FD_CLOEXEC);
+	fcntl(1, F_SETFD, FD_CLOEXEC);
+	fcntl(2, F_SETFD, FD_CLOEXEC);
+
 	/* Get the name of this binary */
 	if ((c = strrchr(argv[0], '/'))) sstrlcpy(self, c + 1);
 	else sstrlcpy(self, argv[0]);
@@ -876,6 +882,9 @@ int main(int argc, char *argv[])
 		SSL_shutdown(st.ss.sslh);
 	}
 
+	close(0);
+	close(1);
+	close(2);
 	/* Clean exit */
 	return OK;
 }

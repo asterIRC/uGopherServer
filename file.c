@@ -22,9 +22,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "fcntl.h"
 #include "signal.h"
+#include "sys/wait.h"
 #include "gophernicus.h"
-
+#include "openssl/ssl.h"
+#include "openssl/err.h"
 
 /*
  * Send a binary file to the client
@@ -344,29 +347,61 @@ void setenv_cgi(state *st, char *script)
 void run_cgi(state *st, char *script, char *arg)
 {
 	char buf[BUFSIZE];
+	FILE *pp;
 	/* Setup environment & execute the binary */
 	if (st->debug) syslog(LOG_INFO, "executing script \"%s\"", script);
 
 	setenv_cgi(st, script);
-	int pipedesc[2];
+	int pipedesc[2], status;
 	int bytes, proc;
-	socketpair(AF_UNIX, SOCK_STREAM, 0, pipedesc);
-	switch (proc = vfork()) {
+	pipe(pipedesc);
+	fcntl(pipedesc[0], F_SETFL, O_NONBLOCK);
+	fcntl(pipedesc[1], F_SETFL, O_NONBLOCK);
+	switch (proc = fork()) {
 		case 0:
-			dup2(pipedesc[1], fileno(stdin));
-			dup2(pipedesc[1], fileno(stdout));
+			dup2(pipedesc[1], 0);
+			dup2(pipedesc[1], 1);
+			dup2(pipedesc[1], 2);
 			execl(script, script, arg, NULL);
 			/* Didn't work - die */
 			info(st, ERR_ACCESS, TYPE_ERROR);
+			return;
 			break;
 		case -1:
 			info(st, "Couldn't fork!", TYPE_ERROR);
+			return;
 			break;
-		default:
-			while ((bytes = read(pipedesc[0], buf, BUFSIZE)) > 0)
-				(*st->write) (&(st->ss), buf, bytes);
-			kill(proc, 9);
 	}
+	int contin = 1;
+	while (contin) {
+		bytes = read(pipedesc[0], buf, 32);
+		switch (bytes) {
+			case -1:
+				switch (errno) {
+					case EAGAIN:
+						if (wait(NULL) == -1) goto stop;
+						goto cont;
+						break;
+					default:
+						goto stop;
+						break;
+				}
+			case 0:
+				goto stop;
+				break;
+			default:
+				(*st->write) (&(st->ss), buf, bytes);
+		}
+		goto cont;
+		stop:
+		contin = 0;
+		break;
+		cont:
+		contin = 1; // Make compiler happy
+	}
+	closefrom(0);
+	exit(0);
+	return;
 }
 
 
