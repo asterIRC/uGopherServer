@@ -872,6 +872,10 @@ int main(int argc, char *argv[])
 			die(&st, ERR_ACCESS, "Refusing to serve out special files");
 	}
 
+	if (st.out_protection && strlen(st.protection_certkeyfile) > 2) {
+		SSL_shutdown(st.ss.sslh);
+	}
+
 	/* Clean exit */
 	return OK;
 }
