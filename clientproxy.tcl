@@ -2,6 +2,42 @@
 
 # welcome to the cringeball proxy
 
+if {0} {
+uGopherServer - The Universal Gopher Server
+clientproxy.tcl - a ... client? to the universal gopher server
+Copyright (c) 2018- Ellenor/Reinhilde Malik <ellenor@umbrellix.net>
+(our legal name is Jack Johnson, but don't tell anyone we're trans, haha)
+
+This program is distributed as part of a derivative work of:
+Gophernicus - Copyright (c) 2009-2014 Kim Holviala <kim@holviala.com>
+and is thus subject to its copyright.
+All rights reserved in theory, in practice very few.
+
+Gophernicus - Copyright (c) 2009-2014 Kim Holviala <kim@holviala.com>
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+}
+
 package require tls
 
 if {[llength $::argv] < 2} {
