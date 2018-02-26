@@ -469,10 +469,6 @@ void gopher_file(state *st)
 	if (st->out_protection && strlen(st->protection_certkeyfile) > 2) {
 		SSL_shutdown(st->ss.sslh);
 	}
-	close(0);
-	close(1);
-	close(2);
-	exit(0);
 }
 
 
