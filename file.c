@@ -399,8 +399,6 @@ void run_cgi(state *st, char *script, char *arg)
 		cont:
 		contin = 1; // Make compiler happy
 	}
-	closefrom(0);
-	exit(0);
 	return;
 }
 
