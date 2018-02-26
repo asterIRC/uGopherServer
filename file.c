@@ -411,6 +411,7 @@ void gopher_file(state *st)
 	struct stat file;
 	char buf[BUFSIZE];
 	char *c, *d;
+	int served = 0;
 
 	/* Refuse to serve out gophermaps/tags */
 	if ((c = strrchr(st->req_realpath, '/'))) c++;
@@ -431,33 +432,39 @@ void gopher_file(state *st)
 	}
 
 	/* Check for & run CGI and query scripts */
-	if (strstr(st->req_realpath, st->cgi_file) || st->req_filetype == TYPE_QUERY)
+	if (strstr(st->req_realpath, st->cgi_file) || st->req_filetype == TYPE_QUERY) {
 		run_cgi(st, st->req_realpath, NULL);
+		served = 1;
+	}
 
 	/* Check for a file suffix filter */
-	if (*st->filter_dir && (c = strrchr(st->req_realpath, '.'))) {
+	if (!served && *st->filter_dir && (c = strrchr(st->req_realpath, '.'))) {
 		snprintf(buf, sizeof(buf), "%s/%s", st->filter_dir, c + 1);
 
 		/* Filter file through the script */
 		if (stat(buf, &file) == OK && (file.st_mode & S_IXOTH))
 			run_cgi(st, buf, st->req_realpath);
+		served = 1;
 	}
 
 	/* Check for a filetype filter */
-	if (*st->filter_dir) {
+	if (!served && *st->filter_dir) {
 		snprintf(buf, sizeof(buf), "%s/%c", st->filter_dir, st->req_filetype);
 
 		/* Filter file through the script */
 		if (stat(buf, &file) == OK && (file.st_mode & S_IXOTH))
 			run_cgi(st, buf, st->req_realpath);
+		served = 1;
 	}
 
 	/* Output regular files */
-	if (st->req_filetype == TYPE_TEXT || st->req_filetype == TYPE_MIME)
-		send_text_file(st);
-	else
-		send_binary_file(st);
-
+	if (!served) {
+		if (st->req_filetype == TYPE_TEXT || st->req_filetype == TYPE_MIME)
+			send_text_file(st);
+		else
+			send_binary_file(st);
+		served = 1;
+	}
 
 	if (st->out_protection && strlen(st->protection_certkeyfile) > 2) {
 		SSL_shutdown(st->ss.sslh);
