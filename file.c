@@ -339,18 +339,37 @@ void setenv_cgi(state *st, char *script)
 
 
 /*
- * Execute a CGI script
+ * Execute a CGI script - modified to work with new SSL support
  */
 void run_cgi(state *st, char *script, char *arg)
 {
+	char buf[BUFSIZE];
 	/* Setup environment & execute the binary */
 	if (st->debug) syslog(LOG_INFO, "executing script \"%s\"", script);
 
 	setenv_cgi(st, script);
-	execl(script, script, arg, NULL);
+	int pipedesc[2];
+	int bytes;
+	socketpair(AF_UNIX, SOCK_STREAM, 0, pipedesc);
+	switch (vfork()) {
+		case 0:
+			dup2(pipedesc[1], fileno(stdin));
+			dup2(pipedesc[1], fileno(stdout));
+			execl(script, script, arg, NULL);
+			/* Didn't work - die */
+			info(st, ERR_ACCESS, TYPE_ERROR);
+			break;
+		case -1:
+			info(st, "Couldn't fork!", TYPE_ERROR);
+			break;
+		default:
+			while ((bytes = read(pipedesc[0], buf, BUFSIZE)) > 0)
+				(*st->write) (&(st->ss), buf, bytes);
+	}
 
-	/* Didn't work - die */
-	die(st, ERR_ACCESS, NULL);
+//	if (st.out_protection && strlen(st.protection_certkeyfile) > 2) {
+//		SSL_shutdown(st.ss.sslh);
+//	}
 }
 
 
