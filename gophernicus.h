@@ -190,6 +190,7 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #define DEFAULT_TAG_EXT	"Gtag"
 #define DEFAULT_FTR_EXT	"Gftr"
 #define DEFAULT_SSL_CKF	"/nonexistant.combinedpem"
+#define DEFAULT_CIPHERS	"HIGH:DEFAULT:!aNULL:!PSK:!SRP:!MD5:!RC4:!EXP"
 #define DEFAULT_CGI	"/cgi-bin/"
 #define DEFAULT_USERDIR	"public_gopher"
 #define DEFAULT_ADDR	"unknown"
@@ -294,6 +295,7 @@ typedef struct {
 	char req_query_string[BUFSIZE];
 	char req_referrer[BUFSIZE];
 	char protection_certkeyfile[BUFSIZE];
+	char protection_cipherlist[BUFSIZE];
 	char req_local_addr[64];
 	char req_remote_addr[64];
 	char req_filetype;

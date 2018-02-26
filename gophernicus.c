@@ -444,6 +444,7 @@ void init_state(state *st)
 	sstrlcpy(st->tag_ext, DEFAULT_TAG_EXT);
 	sstrlcpy(st->ftr_ext, DEFAULT_FTR_EXT);
 	sstrlcpy(st->protection_certkeyfile, DEFAULT_SSL_CKF);
+	sstrlcpy(st->protection_cipherlist, DEFAULT_CIPHERS);
 	sstrlcpy(st->cgi_file, DEFAULT_CGI);
 	sstrlcpy(st->user_dir, DEFAULT_USERDIR);
 	strclear(st->log_file);
@@ -478,6 +479,8 @@ void init_state(state *st)
 	st->opt_root = TRUE;
 	st->debug = FALSE;
 
+	st->drop_uid = 0;
+	st->drop_gid = 0;
 	/* Load default suffix -> filetype mappings */
 	for (i = 0; filetypes[i]; i += 2) {
 		if (st->filetype_count < MAX_FILETYPES) {
@@ -530,18 +533,42 @@ int main(int argc, char *argv[])
 			(file.st_mode & S_IFMT) != S_IFREG) {
 			die(&st, ERR_ACCESS, "Unrecoverable SSL error: certificate and key bundle file not found or not regular");
 		};
+#		if OPENSSL_VERSION_NUMBER < 0x10100000L
+		SSL_library_init();
+#			else
+		OPENSSL_init_ssl(0, NULL);
+#		endif
 		st.ss.wfd = fileno(stdout);
 		st.ss.rfd = fileno(stdin);
 		st.ss.sslctx = (void *)SSL_CTX_new(SSLv23_server_method());
-		SSL_CTX_set_options(st.ss.sslctx, SSL_OP_SINGLE_DH_USE);
+		SSL_CTX_set_cipher_list((SSL_CTX*)st.ss.sslctx, st.protection_cipherlist);
+		SSL_CTX_set_options((SSL_CTX*)st.ss.sslctx, SSL_OP_SINGLE_DH_USE|SSL_OP_NO_SSLv2|SSL_OP_SAFARI_ECDHE_ECDSA_BUG|SSL_OP_TLSEXT_PADDING);
 		int use_cert, use_pkey, reterr;
+		SSL_load_error_strings();
 		use_cert = SSL_CTX_use_certificate_chain_file((SSL_CTX*)(st.ss.sslctx), st.protection_certkeyfile);
 		use_pkey = SSL_CTX_use_PrivateKey_file((SSL_CTX*)(st.ss.sslctx), st.protection_certkeyfile, SSL_FILETYPE_PEM);
-		st.ss.sslh = (void *)SSL_new(st.ss.sslctx);
-		SSL_set_wfd((SSL*)st.ss.sslh, fileno(stdout));
-		SSL_set_rfd((SSL*)st.ss.sslh, fileno(stdin));
-		SSL_load_error_strings();
-		while ((reterr = SSL_do_handshake((SSL*)st.ss.sslh)) <= 0) {
+		if (NULL == (st.ss.sslh = (void *)SSL_new(st.ss.sslctx))) {
+			syslog(LOG_ERR, "%s", "Unrecoverable error in SSL_new");
+	/* Try to open the logfile for appending */
+			if (st.log_file) {
+				if ((fp = fopen(st.log_file , "a")) == NULL) exit(0);
+
+				SSL_load_error_strings();
+				/* Generate log entry */
+				ERR_print_errors_fp(fp);
+				fclose(fp);
+			}
+			exit(0);
+		}
+		BIO *wbio, *rbio;
+		wbio = BIO_new_fp(stdout, BIO_NOCLOSE);
+		rbio = BIO_new_fp(stdin, BIO_NOCLOSE);
+		setvbuf(stdout, (char *)NULL, _IONBF, 0);
+		setvbuf(stdin, (char *)NULL, _IONBF, 0);
+		SSL_set_bio((SSL*)st.ss.sslh, rbio, wbio);
+		SSL_set_accept_state((SSL*)st.ss.sslh);
+#if 0
+		while ((reterr = SSL_accept((SSL*)st.ss.sslh)) <= 0) {
 			int errcode = ERR_get_error();
 			ERR_error_string_n(errcode, osslerr, 1024);
 			switch (SSL_get_error((SSL*)st.ss.sslh, reterr)) {
@@ -581,6 +608,7 @@ int main(int argc, char *argv[])
 			}
 			exit(0);
 		}
+#endif
 		st.read = &ssl_read;
 		st.write = &ssl_write;
 		st.fgets = &ssl_fgets;
@@ -591,6 +619,15 @@ int main(int argc, char *argv[])
 		st.write = &plain_write;
 		st.fgets = &plain_fgets;
 	}
+
+#ifdef HAVE_PASSWD
+	// You use this if you've got SSL certificates to read.
+	if (st.drop_uid != 0) {
+		if (0 != setgid(st.drop_gid)) die(&st, ERR_ACCESS, "Can't drop wheel group");
+		if (0 != setuid(st.drop_uid)) die(&st, ERR_ACCESS, "Can't drop root privileges");
+		if (-1 != setuid(0)) die(&st, ERR_ACCESS, "Able to regain root privileges");
+	}
+#endif
 
 	/* Open syslog() */
 	if (st.opt_syslog) openlog(self, LOG_PID, LOG_DAEMON);

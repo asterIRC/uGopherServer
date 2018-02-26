@@ -32,28 +32,31 @@
 
 #include "gophernicus.h"
 #include "openssl/ssl.h"
+#include "openssl/err.h"
+#include "openssl/bio.h"
 
 int plain_read(void *sockst, char *buf, size_t count)
 {
-	int r = read(((sockstate*)sockst)->rfd, buf, count);
-	memset(buf, 0, 1024);
-	return r;
+	memset(buf, 0, BUFSIZE);
+	return read(((sockstate*)sockst)->rfd, buf, count);
 };
 
 char *plain_fgets(char *buf, size_t count, void *sockst)
 {
+	memset(buf, 0, BUFSIZE);
 	return fgets(buf, count, stdin);
 };
 
 int plain_write(void *sockst, char *buf, size_t count)
 {
 	int r = write(((sockstate*)sockst)->wfd, buf, count);
-	memset(buf, 0, 1024);
+	memset(buf, 0, BUFSIZE);
 	return r;
 };
 
 int ssl_read(void *sockst, char *buf, size_t count)
 {
+	memset(buf, 0, BUFSIZE);
 	sockstate *ss = (sockstate *)sockst;
 	return (SSL_read((SSL*)(ss->sslh), buf, count));
 };
@@ -61,34 +64,49 @@ int ssl_read(void *sockst, char *buf, size_t count)
 int ssl_write(void *sockst, char *buf, size_t count)
 {
 	sockstate *ss = (sockstate *)sockst;
-	return (SSL_write((SSL*)(ss->sslh), buf, count));
-	memset(buf, 0, 1024);
+	int r;
+	r = (SSL_write((SSL*)(ss->sslh), buf, count));
+	memset(buf, 0, BUFSIZE);
+	return r;
 };
 
 char *ssl_fgets (char *buf, size_t count, void *sockst)
 {
 	size_t donecount;
 	char ourbuf[BUFSIZE];
+	char *ours = ourbuf;
+	char osslerr[BUFSIZE];
 	sockstate *ss = (sockstate *)sockst;
 	int i, j;
 
 	for (i = 0; i < count && i < BUFSIZE; i++) {
-		if ((j = SSL_read( (SSL*)(ss->sslh), (&ourbuf + count), 1)) <= 0) {
+		continuate:
+		if ((j = SSL_read( (SSL*)(ss->sslh), ours, BUFSIZE - 1)) <= 0) {
+			int errcode = ERR_get_error();
+			ERR_error_string_n(errcode, osslerr, BUFSIZE - 1);
 			switch (SSL_get_error((SSL*)(ss->sslh), j)) {
-				case SSL_ERROR_NONE:
-					return NULL;
-					break;
 				case SSL_ERROR_ZERO_RETURN:
-				case SSL_ERROR_SSL:
+				syslog(LOG_ERR, "Unrecoverable SSL error in fgets: zero return");
+				break;
+				case SSL_ERROR_WANT_READ:
+				case SSL_ERROR_WANT_WRITE:
+				case SSL_ERROR_WANT_CONNECT:
+				case SSL_ERROR_WANT_ACCEPT:
+				case SSL_ERROR_WANT_X509_LOOKUP:
+				goto continuate;
+				break;
 				case SSL_ERROR_SYSCALL:
-					exit(0);
-					break;
+				syslog(LOG_ERR, "Unrecoverable SSL error in fgets: syscall error %s, and here's the cruft in errcode and osslerr: %i, %s", strerror(errno), errcode, osslerr);
+				break;
+				case SSL_ERROR_SSL:
+				syslog(LOG_ERR, "Unrecoverable SSL error in fgets: SSL protocol error. And, %s.", errcode == 0 ? "No SSL error." : osslerr);
+				break;
 			}
 		} else {
-			if (ourbuf[i] == ' ') {
-				ourbuf[i+1] = 0;
-				strlcpy(buf, ourbuf, i);
-				return buf;
+			ours = ours + j;
+			i = i + j - 1;
+			if (ourbuf[i] == '\n') {
+				break;
 			}
 		}
 	}

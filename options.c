@@ -24,7 +24,9 @@
 
 
 #include "gophernicus.h"
-
+#include "sys/types.h"
+#include "pwd.h"
+#include "grp.h"
 
 /*
  * Add one suffix->filetype mapping to the filetypes array
@@ -95,11 +97,13 @@ void parse_args(state *st, int argc, char *argv[])
 	struct stat file;
 	char buf[BUFSIZE];
 	int opt;
+	struct passwd *pwnam;
+	struct group *grnam;
 
 	/* Parse args */
 	st->out_protection = !TRUE;
 
-	while ((opt = getopt(argc, argv, "h:p:r:t:g:H:T:F:a:c:u:m:l:w:o:s:i:k:f:e:R:D:L:A:P:S:n:db?-")) != ERROR) {
+	while ((opt = getopt(argc, argv, "h:p:r:t:g:H:T:F:U:G:a:c:u:m:l:w:o:s:i:k:f:e:R:D:L:A:P:S:K:n:db?-")) != ERROR) {
 		switch(opt) {
 			case 'h': sstrlcpy(st->server_host, optarg); break;
 			case 'p': st->server_port = atoi(optarg); break;
@@ -123,6 +127,38 @@ void parse_args(state *st, int argc, char *argv[])
 			case 'S':
 				st->out_protection = TRUE;
 				sstrlcpy(st->protection_certkeyfile, optarg);
+				break;
+			case 'K':
+				sstrlcpy(st->protection_cipherlist, optarg);
+				break;
+			case 'U':
+				pwnam = getpwnam(optarg);
+				if (pwnam == NULL && getuid() == 0) {
+					printf("3 is the server administrator smoking craq? i'm running as root and the drop-user (%s) is fake!\t/\tfake\t0" CRLF, optarg);
+					exit(0);
+					break;
+				} else if (pwnam->pw_uid < 1 && getuid() == 0) {
+					printf("3 is the server administrator smoking craq? i'm running as root and the drop-user (%i: %s) is root!\t/\tfake\t0" CRLF, pwnam->pw_uid, optarg);
+					exit(0);
+					break;
+				}
+				st->drop_uid = pwnam->pw_uid;
+				if (st->drop_gid == 0) {
+					st->drop_gid = pwnam->pw_gid;
+				}
+				break;
+			case 'G':
+				grnam = getgrnam(optarg);
+				if (grnam == NULL && getgid() == 0) {
+					printf("3 is the server administrator smoking craq? i'm running as root's group and drop-group (%s) is fake!\t/\tfake\t0" CRLF, optarg);
+					exit(0);
+					break;
+				} else if (grnam->gr_gid < 1 && getgid() == 0) {
+					printf("3 is the server administrator smoking craq? i'm running as root's group and the drop-group (%i: %s) is root's group!\t/\tfake\t0" CRLF, grnam->gr_gid, optarg);
+					exit(0);
+					break;
+				}
+				st->drop_gid = grnam->gr_gid;
 				break;
 
 			case 's': st->session_timeout = atoi(optarg); break;

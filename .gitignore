@@ -26,3 +26,4 @@ debian/gophernicus/
 
 in.gophernicus.core
 ktrace.out
+*.log

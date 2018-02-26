@@ -40,6 +40,8 @@ Command line options:
                   is a path, preferably absolute, to your SSL
                   certificate. Must be readable by the user
                   the process runs as before going privdrop.
+    -K cipherlist Specify custom cipherlist. No effect unless
+                  -S. Normally you don't need to.
 
     -U droptouser Drop privileges to this username   [nobody]
                   after reading certificates.
