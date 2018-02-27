@@ -618,6 +618,7 @@ int main(int argc, char *argv[])
 		st.read = &ssl_read;
 		st.write = &ssl_write;
 		st.fgets = &ssl_fgets;
+		SSL_do_handshake((SSL*)st.ss.sslh);
 	} else {
 		st.ss.wfd = 1;
 		st.ss.rfd = 0;
@@ -688,6 +689,8 @@ int main(int argc, char *argv[])
 	else
 #endif
 		platform(&st);
+
+	if (st.debug) syslog(LOG_INFO, "client sending us a selector");
 
 	/* Read selector */
 	if ((st.fgets)(selector, sizeof(selector) - 1, &st.ss) == NULL)
