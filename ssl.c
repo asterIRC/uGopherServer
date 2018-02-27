@@ -81,7 +81,7 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 
 	for (i = 0; i < count && i < BUFSIZE; i++) {
 		continuate:
-		if ((j = SSL_read( (SSL*)(ss->sslh), ours, 1)) <= 0) {
+		if ((j = SSL_read( (SSL*)(ss->sslh), ours, BUFSIZE - i - 1)) <= 0) {
 			int errcode = ERR_get_error();
 			ERR_error_string_n(errcode, osslerr, BUFSIZE - 1);
 			switch (SSL_get_error((SSL*)(ss->sslh), j)) {
@@ -96,7 +96,6 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 				goto continuate;
 				break;
 				case SSL_ERROR_SYSCALL:
-				if (errno == EAGAIN) goto continuate;
 				syslog(LOG_ERR, "Unrecoverable SSL error in fgets: syscall error %s, and here's the cruft in errcode and osslerr: %i, %s", strerror(errno), errcode, osslerr);
 				break;
 				case SSL_ERROR_SSL:
