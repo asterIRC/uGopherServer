@@ -74,10 +74,12 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 {
 	size_t donecount;
 	char ourbuf[BUFSIZE];
+	memset(&ourbuf, 0, BUFSIZE);
 	char *ours = ourbuf;
 	char osslerr[BUFSIZE];
 	sockstate *ss = (sockstate *)sockst;
 	int i, j;
+	syslog(LOG_ERR, "reading up to %lu bytes", count);
 
 	for (i = 0; i < count && i < BUFSIZE; i++) {
 		continuate:
@@ -96,7 +98,7 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 				goto continuate;
 				break;
 				case SSL_ERROR_SYSCALL:
-				if (errno == 0) goto continuate;
+				if (errno == EAGAIN) goto continuate;
 				syslog(LOG_ERR, "Unrecoverable SSL error in fgets: syscall error %s, and here's the cruft in errcode and osslerr: %i, %s", strerror(errno), errcode, osslerr);
 				break;
 				case SSL_ERROR_SSL:
@@ -104,15 +106,46 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 				break;
 			}
 		} else {
-			ours = ours + j + 1;
+			ours = ours + j;
+			syslog(LOG_ERR, "reading bytes - number read == %i - this part of the buffer: %s - our buffer so far: %s", ourbuf[i], ours, ourbuf);
 			i = i + j;
-			if (ourbuf[i] == '\n') {
+			if (ourbuf[i-1] == '\n' || ourbuf[i-1] == '\0') {
 				break;
 			}
 		}
 	}
-	if (i+1 < BUFSIZE) ourbuf[i+1] = 0;
-	else ourbuf[BUFSIZE-1] = 0;
+	strlcpy(buf, ourbuf, i);
+	return buf;
+};
+
+char *emulating_ssl_fgets (char *buf, size_t count, void *sockst)
+{
+	size_t donecount;
+	char ourbuf[BUFSIZE];
+	memset(&ourbuf, 0, BUFSIZE);
+	char *ours = ourbuf;
+	char osslerr[BUFSIZE];
+	sockstate *ss = (sockstate *)sockst;
+	int i, j;
+	syslog(LOG_ERR, "reading up to %lu bytes", count);
+
+	for (i = 0; i < count && i < BUFSIZE; i++) {
+		continuate:
+		if ((j = read( ss->rfd, ours, BUFSIZE - i - 1)) <= 0) {
+			int errcode = errno;
+			syslog(LOG_ERR, "Error in fgets: %s.", errcode == 0 ? "No error." : osslerr);
+			if (ourbuf[i-1] == '\n' || ourbuf[i-1] == '\0') {
+				break;
+			}
+		} else {
+			ours = ours + j;
+			syslog(LOG_ERR, "reading a byte 0x%x - our buffer so far: %s", ourbuf[i], ourbuf);
+			i = i + j;
+			if (ourbuf[i-1] == '\n' || ourbuf[i-1] == '\0') {
+				break;
+			}
+		}
+	}
 	strlcpy(buf, ourbuf, i);
 	return buf;
 };

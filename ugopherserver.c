@@ -624,7 +624,7 @@ int main(int argc, char *argv[])
 		st.ss.rfd = 0;
 		st.read = &plain_read;
 		st.write = &plain_write;
-		st.fgets = &plain_fgets;
+		st.fgets = &emulating_ssl_fgets;
 	}
 
 #ifdef HAVE_PASSWD
