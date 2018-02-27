@@ -585,7 +585,6 @@ void gopher_menu(state *st)
 			gophermap(st, buf, 0);
 		}
 
-
 		/* Handle directories */
 		if ((dir[i].mode & S_IFMT) == S_IFDIR) {
 
@@ -646,6 +645,16 @@ void gopher_menu(state *st)
 				(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 			}
 
+
+			/* Check for a footer */
+			snprintf(buf, sizeof(buf), "%s.%s",
+				pathname, st->ftr_ext);
+
+			if (stat(buf, &file) == OK &&
+			    (file.st_mode & S_IFMT) == S_IFREG) {
+				/* Parse footer as a gophermap (allows adding citations or so) */
+				gophermap(st, buf, 0);
+			}
 			continue;
 		}
 
@@ -714,7 +723,6 @@ void gopher_menu(state *st)
 				st->server_port);
 			(*st->write) (&(st->ss), sockbuf, strlen(sockbuf));
 		}
-
 
 		/* Check for a footer */
 		snprintf(buf, sizeof(buf), "%s.%s",
