@@ -12,4 +12,7 @@ Things I might work on:
 	* Password-protected resources
 	* Allow/Deny per IP/host
 	* Automated feature testing script
-	* SSL/TLS
+
+Things that are done:
+
+	* SSL/TLS support

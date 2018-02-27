@@ -25,7 +25,7 @@
 #include "fcntl.h"
 #include "signal.h"
 #include "sys/wait.h"
-#include "gophernicus.h"
+#include "ugopherserver.h"
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 

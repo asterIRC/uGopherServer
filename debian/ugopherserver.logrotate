@@ -1,4 +1,4 @@
-/var/log/gophernicus/server.log {
+/var/log/ugopherserver/server.log {
 	rotate 6
 	weekly
 	compress

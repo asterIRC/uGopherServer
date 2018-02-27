@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>org.gophernicus.server</string>
+	<string>net.umbrellix.universalgopher.server</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>/usr/sbin/in.gophernicus</string>

@@ -1,12 +1,27 @@
-Gophernicus - Copyright (c) 2009-2014 Kim Holviala <kim@holviala.com>
-Umbrellix patch copyright ellenor malik.
+uGopherServer, the universal gopher server
+See LICENSE for copyright information
 
-Gophernicus is a modern full-featured (and hopefully) secure gopher
-daemon for inetd. It is licensed under the BSD license.
+uGopherServer is a modern, featureful and relatively secure gopher
+daemon built to be run under inetd, available under the 2-clause
+BSD license. Binaries are available under the combination of the
+2-clause BSD license, the SSLeay license and the OpenSSL license.
+
+uGS accepts the environment variables "REMOTE_ADDR" and "REMOTE_HOST"
+with the same semantics so that if it is being run behind some kind
+of proxy, it is possible for that proxy, with a counterpart
+shielding uGS, to pass the address through to uGS.
+
+It is based on the proven codebase of Gophernicus 2014, and includes
+numerous additions for TLS support, including user privilege droppage,
+and obviously, TLS support. You MUST have OpenSSL available in
+/usr/lib and /usr/include for it to compile.
 
 Command line options:
     -h hostname   Change server hostname (FQDN)      [$HOSTNAME]
     -p port       Change server port                 [70]
+                  Note that for a -S instance, you must specify a -p
+                  above 100000 (it is suggested, if listening on
+                  105, formerly the CSO/ph port, to use -p 100105) 
     -r root       Change gopher root                 [/var/gopher]
     -t type       Change default gopher filetype     [0]
     -g mapfile    Change gophermap file              [gophermap]
@@ -20,6 +35,8 @@ Command line options:
     -F footerext  Change extension of footer file    [Gftr]
 
     -w width      Change default page width          [70]
+                  Many sites would benefit from boosting this to 132.
+
     -o charset    Change default output charset      [US-ASCII]
 
     -s seconds    Session timeout in seconds         [1800]
@@ -43,9 +60,9 @@ Command line options:
     -K cipherlist Specify custom cipherlist. No effect unless
                   -S. Normally you don't need to.
 
-    -U droptouser Drop privileges to this username   [nobody]
+    -U droptouser Drop privileges to this username   [<none>]
                   after reading certificates.
-    -G group      Drop privileges to this group      [nogroup]
+    -G group      Drop privileges to this group      [group of -U]
                   after reading certificates.
     The above two options are unnecessary if running plaintext,
     however if the daemon is started as root, you must use them
@@ -72,8 +89,8 @@ Command line options:
 Setting up a gopher site
 ========================
 
-After succesfully installing Gophernicus (see INSTALL) you need to set
-up the gopher root directory. By default Gophernicus serves documents
+After succesfully installing uGopherServer (see INSTALL) you need to set
+up the gopher root directory. By default uGopherServer serves documents
 from /var/gopher so start by creating that directory and making sure
 it's world-readable. Then, simply add files and directories under your
 root, fire up a gopher browser (Firefox, Lynx) and open up this URL:
@@ -89,12 +106,13 @@ instead of <HOSTNAME> - see INSTALL).
 Security
 ========
 
-Gophernicus has been written with high security in mind. There should
-be no buffer overflows or memory allocation problems so it should be
-safe to run a publicly available gopher server with Gophernicus.
+Gophernicus, on which uGopherServer is based, was written with high
+security in mind. There should be no buffer overflows or memory
+allocation problems; it should be safe to run a publicly available
+gopher server with uGopherServer.
 
 However, the security settings (which are non-changeable) are so strict
-that you need to keep one thing in mind. Gophernicus will only serve
+that you need to keep one thing in mind. uGopherServer will only serve
 world-readable content. Being readable by the server process is not
 enough, all files and directories MUST be world-readable or they are
 simply hidden from all listings and denied if a client asks for them.
@@ -110,7 +128,7 @@ replace the generated menu with your own you need to take a look at
 gophermaps. See the file README.gophermap for more information.
 
 Menus can be writ piecemeal in part if you desire to have a preamble
-before every menu item in gophernicus-umbrellix. foo.Ghdr will be a
+before every menu item in uGopherServer. foo.Ghdr will be a
 preamble to the item, and foo.Gftr will be the postamble.
 
 Gophertags
@@ -130,19 +148,22 @@ to rename foo to the contents of the first line of foo.Gtag.
 Personal gopherspaces
 =====================
 
-Gophernicus supports users personal gopherspaces. If a user has
-world-readable directory called public_gopher/ under his home, a
-request for gopher://<HOSTNAME>/1/~user/ will serve documents from
-that directory.
+Gophernicus, and by extension, uGopherServer supports user
+personal gopherspaces. If a user has a world-readable directory
+called public_gopher/ in their home, a request for
+
+   gopher://<HOSTNAME>/1/~user/
+
+will serve documents from that directory.
 
 
 Virtual hosting
 ===============
 
-Gophernicus supports virtual hosting, or serving more than one logical
+uGS supports virtual hosting, or serving more than one logical
 domain using the same IP address. Since gopher (RFC1436) doesn't
-support virtual hosting this requires some clever (but mostly invisble)
-hacks.
+support virtual hosting this requires some clever (but mostly
+invisible) hacks.
 
 To enable virtual hosting create one or more directories under your
 gopher root which are named after your domain names. The primary vhost
@@ -164,8 +185,11 @@ reach.
 CGI support
 ===========
 
-Gophernicus supports most parts of the CGI/1.1 standard. Most standard
-CGI variables are set, and some non-standard ones are added.
+uGopherServer supports most parts of the CGI/1.1 standard. Most
+standard CGI variables are set, and some non-standard ones are added.
+
+Currently, user input is broken due to debugging work done on the CGI
+support. Query strings still work.
 
 By default all scripts and binaries under any directory called
 /cgi-bin/ are executed as CGI scripts (this includes cgi-bin
@@ -181,7 +205,7 @@ security problem with publicly open *nix servers.
 Output filtering and PHP support
 ================================
 
-In addition to CGI scripts Gophernicus supports output filtering
+In addition to CGI scripts uGopherServer supports output filtering
 scripts. By default output filtering is turned off, but you can turn
 it on by using the -f <FILTERDIR> option, creating that directory
 and creating one or more scripts in there named by either the file
@@ -208,8 +232,8 @@ gopher protocol doesn't have.
 Charset support and conversions
 ===============================
 
-Gophernicus supports three charsets: US-ASCII, ISO-8859-1 and UTF-8.
-All textual input is internally upconverted to UTF-8 and then
+uGopherServer supports three charsets: US-ASCII, ISO-8859-1 and
+UTF-8. All textual input is internally upconverted to UTF-8 and then
 downconverted to whatever charset the client is asking for. The
 conversion is input autosensing which means that you don't have to
 specify your filesystem charset, or the charset of your text files -
@@ -230,7 +254,7 @@ Selector rewriting
 
 Selector rewriting lets you rewrite parts of the selector on the fly.
 Well, not parts, but really just the start of it. And the rewrite
-enging here is nothing like Apache's mod_rewrite as I was too lazy
+engine here is nothing like Apache's mod_rewrite as I was too lazy
 to integrate any regex libraries... So, all it does is rewrite a
 fixed string at the start of the selector to something else. This
 will let you move your directories around while making sure that
@@ -240,6 +264,9 @@ Examples:
 
   -R "/~user=/~luser"
   -R "/old-dir=/new-dir"
+
+*yawn*... Either this feature needs to be removed in Universal or
+be drastically modified... Maybe send the rewriting to a CGI...
 
 
 Session tracking and statistics

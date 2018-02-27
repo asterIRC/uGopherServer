@@ -1,4 +1,4 @@
-Template: gophernicus/fqdn
+Template: ugopherserver/fqdn
 Type: string
 Default: 
 Description: Fully-qualified hostname for the gopher server:

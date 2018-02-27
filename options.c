@@ -23,7 +23,7 @@
  */
 
 
-#include "gophernicus.h"
+#include "ugopherserver.h"
 #include "sys/types.h"
 #include "pwd.h"
 #include "grp.h"

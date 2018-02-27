@@ -1,4 +1,4 @@
 usr/sbin
 var/gopher
-var/log/gophernicus
-usr/lib/gophernicus/filters
+var/log/ugopherserver
+usr/lib/ugopherserver/filters

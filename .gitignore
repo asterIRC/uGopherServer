@@ -7,7 +7,7 @@ files.h
 functions.h
 README.options
 bin2c
-in.gophernicus
+in.*
 
 #
 # Release files

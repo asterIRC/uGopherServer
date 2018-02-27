@@ -1,3 +1,5 @@
+# this xinetd file is outdated!
+
 # default: on
 # description: Gophernicus - Modern full-featured gopher server
 service gopher
@@ -5,7 +7,7 @@ service gopher
 	socket_type	= stream        
 	wait		= no
 	user		= nobody
-	server		= /usr/sbin/in.gophernicus
+	server		= /usr/sbin/in.ugopherserver
 	server_args	= -r/var/gopher -h@HOSTNAME@
 	disable		= no
 }

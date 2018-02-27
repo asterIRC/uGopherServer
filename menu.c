@@ -23,7 +23,7 @@
  */
 
 
-#include "gophernicus.h"
+#include "ugopherserver.h"
 
 
 /*

@@ -30,7 +30,7 @@
  * ssl.c - routines for handling socket translator engines
  */
 
-#include "gophernicus.h"
+#include "ugopherserver.h"
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 #include "openssl/bio.h"

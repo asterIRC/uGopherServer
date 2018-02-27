@@ -10,7 +10,7 @@
 #export DH_VERBOSE=1
 
 # Installation directory
-DEST=$(CURDIR)/debian/gophernicus
+DEST=$(CURDIR)/debian/ugopherserver
 
 configure:
 
@@ -38,12 +38,12 @@ install: build
 	dh_clean -k 
 	dh_installdirs
 
-	# Add here commands to install the package into debian/gophernicus
+	# Add here commands to install the package into debian/ugopherserver
 	$(MAKE) DESTDIR=$(DEST)/usr install-files
 	rm -rf $(DEST)/tmp
-	ln -s /usr/share/doc/gophernicus/ $(DEST)/var/gopher/docs
-	ln -s /usr/bin/php5 $(DEST)/usr/lib/gophernicus/filters/php
-	cp gophermap $(DEST)/usr/lib/gophernicus/
+	ln -s /usr/share/doc/ugopherserver/ $(DEST)/var/gopher/docs
+	ln -s /usr/bin/php5 $(DEST)/usr/lib/ugopherserver/filters/php
+	cp gophermap $(DEST)/usr/lib/ugopherserver/
 
 # Build architecture-independent files here.
 binary-indep: build install

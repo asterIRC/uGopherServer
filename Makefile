@@ -5,7 +5,7 @@
 #
 # Variables and default configuration
 #
-NAME    = gophernicus
+NAME    = ugopherserver
 PACKAGE = $(NAME)
 BINARY  = in.$(NAME)
 VERSION = 1.6
@@ -37,8 +37,10 @@ RELDIR  = /var/gopher/gophernicus.org/software/gophernicus/
 
 CC      = gcc
 HOSTCC	= $(CC)
-CFLAGS  = -O0 -g -Wall -L/usr/lib -I/usr/include -lcrypto
-LDFLAGS = -lssl -L/usr/lib -lcrypto
+SSLPATH	= /usr
+# CHANGE SSLPATH IF YOU HAVE PROBLEMS!
+CFLAGS  = -O0 -g -Wall -L$(SSLPATH)/lib -I$(SSLPATH)/include -lcrypto
+LDFLAGS = -lssl -L$(SSLPATH)/lib -lcrypto
 
 
 #
@@ -168,7 +170,7 @@ install-inetd:
 	@echo "======================================================================"
 	@echo
 	@echo "Looks like your system has the traditional internet superserver inetd."
-	@echo "Automatic installations aren't supported, so please add the following"
+	@echo "Automatic installations are a can of worms, so please add the following"
 	@echo "line to the end of your /etc/inetd.conf and restart or kill -HUP the"
 	@echo "inetd process."
 	@echo
@@ -186,7 +188,7 @@ install-xinetd:
 
 install-osx:
 	if [ -d "$(LAUNCHD)" -a ! -f "$(LAUNCHD)/$(PLIST)" ]; then \
-		sed -e "s/@HOSTNAME@/`hostname`/g" org.gophernicus.server.plist > \
+		sed -e "s/@HOSTNAME@/`hostname`/g" net.umbrellix.universalgopher.server.plist > \
 			$(LAUNCHD)/$(PLIST); \
 		launchctl load $(LAUNCHD)/$(PLIST); \
 	fi
@@ -202,7 +204,7 @@ install-haiku:
 		echo "	family inet"; \
 		echo "	protocol tcp"; \
 		echo "	port 70"; \
-		echo "	launch in.gophernicus -h `hostname`"; \
+		echo "	launch in.$(NAME) -h `hostname`"; \
 		echo "}") >> $(NET_SRV); \
 	fi
 	@echo
