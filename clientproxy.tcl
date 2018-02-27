@@ -99,7 +99,7 @@ proc tgp:read {c a p} {
 		if {[lindex $socketc 0] == "::tls::socket"} {tls::handshake $err}
 		chan configure $c -blocking 0 -buffering line -translation {auto crlf}
 		chan configure $err -blocking 0 -buffering line -translation {auto crlf}
-		puts -nonewline $err [format "%s\r\n" $sendsel]
+		puts -nonewline $err [format "%s\n" $sendsel]
 		puts stdout [format "%s/%s %s;%s/%s %s %s - fetching" $p $a $ta $tp $stype $sendsel $socketrcb]
 		#chan event $c readable [list tgp:getitinthere $err $c]
 		chan event $err readable [list $socketrcb $c $err]

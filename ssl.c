@@ -79,7 +79,6 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 	char osslerr[BUFSIZE];
 	sockstate *ss = (sockstate *)sockst;
 	int i, j;
-	syslog(LOG_ERR, "reading up to %lu bytes", count);
 
 	for (i = 0; i < count && i < BUFSIZE; i++) {
 		continuate:
@@ -107,7 +106,6 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 			}
 		} else {
 			ours = ours + j;
-			syslog(LOG_ERR, "reading bytes - number read == %i - this part of the buffer: %s - our buffer so far: %s", ourbuf[i], ours, ourbuf);
 			i = i + j;
 			if (ourbuf[i-1] == '\n' || ourbuf[i-1] == '\0') {
 				break;
@@ -127,19 +125,16 @@ char *emulating_ssl_fgets (char *buf, size_t count, void *sockst)
 	char osslerr[BUFSIZE];
 	sockstate *ss = (sockstate *)sockst;
 	int i, j;
-	syslog(LOG_ERR, "reading up to %lu bytes", count);
 
 	for (i = 0; i < count && i < BUFSIZE; i++) {
 		continuate:
 		if ((j = read( ss->rfd, ours, BUFSIZE - i - 1)) <= 0) {
 			int errcode = errno;
-			syslog(LOG_ERR, "Error in fgets: %s.", errcode == 0 ? "No error." : osslerr);
 			if (ourbuf[i-1] == '\n' || ourbuf[i-1] == '\0') {
 				break;
 			}
 		} else {
 			ours = ours + j;
-			syslog(LOG_ERR, "reading a byte 0x%x - our buffer so far: %s", ourbuf[i], ourbuf);
 			i = i + j;
 			if (ourbuf[i-1] == '\n' || ourbuf[i-1] == '\0') {
 				break;
