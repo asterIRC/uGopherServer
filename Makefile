@@ -8,7 +8,7 @@
 NAME    = ugopherserver
 PACKAGE = $(NAME)
 BINARY  = in.$(NAME)
-VERSION = 1.6
+VERSION = 2018-02-26
 
 SOURCES = $(NAME).c file.c menu.c string.c platform.c session.c options.c ssl.c
 HEADERS = functions.h files.h

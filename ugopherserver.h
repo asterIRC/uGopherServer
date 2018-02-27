@@ -227,11 +227,11 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #define ERROR_PREFIX	"Error: "
 
 /* Strings */
-#define SERVER_SOFTWARE	"Gophernicus"
-#define SERVER_SOFTWARE_FULL SERVER_SOFTWARE "/" VERSION "-umbrellix1.0 (%s)"
+#define SERVER_SOFTWARE	"uGopherServer"
+#define SERVER_SOFTWARE_FULL SERVER_SOFTWARE "-" VERSION
 
 #define HEADER_FORMAT	"[%s]"
-#define FOOTER_FORMAT	"Ecstatically rendered by Gophernicus/" VERSION " on %s"
+#define FOOTER_FORMAT	"Ecstatically rendered by UniversalGopherServer " VERSION " on %s"
 
 #define UNITS		"KB", "MB", "GB", "TB", "PB", NULL
 #define DATE_FORMAT	"%Y-%b-%d %H:%M"	/* See man 3 strftime */

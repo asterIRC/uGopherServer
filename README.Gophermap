@@ -1,4 +1,4 @@
-!Sample gophermap for Gophernicus
+!Sample gophermap for uGopherServer
 
 ##
 ## This is a sample gophermap.
@@ -9,6 +9,15 @@ normal resource listing and replaces it with the contents of the map
 file. You can also have inline gophermaps - files with a ".gophermap"
 extension are parsed as gophermaps and displayed in between normal
 resources in alphabetical order.
+
+Creating a file called "foo.Ghdr" adds the result of parsing
+foo.Ghdr as a gophermap to the menu before the selector for "foo".
+
+Creating a file called "foo.Gftr" adds the result of parsing
+foo.Gftr as a gophermap to the menu after the selector for "foo".
+
+Creating a file called "foo.Gtag" behaves as though foo was a direct-
+ory containing a gophertag - this gophertag is applied thus.
 
 In a gophermap any line that doesn't contain a <TAB> character is 
 automatically converted to an type "i" gopher resource which are
