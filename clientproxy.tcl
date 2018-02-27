@@ -41,14 +41,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package require tls
 
 if {[llength $::argv] < 2} {
-	puts stdout "Oi, you gotta specify both the port AND the hostname - try: ${argv0} 27070 127.0.0.1"
+	#puts stdout "Oi, you gotta specify both the port AND the hostname - try: ${argv0} 27070 127.0.0.1"
 	exit
 }
 socket -myaddr [lindex $::argv 1] -server acceptconn [lindex $::argv 0]
 set proxyhost [lindex $::argv 1]
 
 proc acceptconn {c a p} {
-	puts stdout "received connection from 1/$p/$a"
+	#puts stdout "received connection from 1/$p/$a"
 	chan configure $c -blocking 0 -buffering line -translation {auto crlf}
 	chan event $c readable [list tgp:read $c $a $p]
 }
@@ -62,7 +62,7 @@ proc tgp:fmt-line {type selector path host {port 70} {plus {}}} {
 
 proc tgp:read {c a p} {
 	set gotten [gets $c line]
-	puts stdout $line
+	#puts stdout $line
 	if {[string index $line 0] == "/"} {set line [string range $line 1 end]}
 	set req [split $line "/"]
 	if {[llength $req] < 3} {
@@ -70,7 +70,7 @@ proc tgp:read {c a p} {
 		close $c
 		return
 	}
-	puts stdout $req
+	#puts stdout $req
 	set sendsel [lassign $req stype tp ta]
 	set socketc [list ::socket]
 	if {[llength $sendsel] > 0 || ([lindex $sendsel 0] != {} && [lindex $sendsel 0] != "")} {set sendsel [join $sendsel "/"]} {set sendsel ""}
@@ -91,7 +91,7 @@ proc tgp:read {c a p} {
 	}
 	if {[set errval [catch [list {*}$socketc $ta $tp] err]] != 0} {
 		puts $c [tgp:fmt-line 3 "Error: connection did not synchronise" "/" "127.0.0.1" [lindex $::argv 0]]
-		puts stdout [format "%s/%s %s;%s/%s %s %s - failed" $p $a $ta $tp $stype $sendsel $socketc]
+		#puts stdout [format "%s/%s %s;%s/%s %s %s - failed" $p $a $ta $tp $stype $sendsel $socketc]
 		close $c
 		return
 	} {
@@ -100,7 +100,7 @@ proc tgp:read {c a p} {
 		chan configure $c -blocking 0 -buffering line -translation {auto crlf}
 		chan configure $err -blocking 0 -buffering line -translation {auto crlf}
 		puts -nonewline $err [format "%s\n" $sendsel]
-		puts stdout [format "%s/%s %s;%s/%s %s %s - fetching" $p $a $ta $tp $stype $sendsel $socketrcb]
+		#puts stdout [format "%s/%s %s;%s/%s %s %s - fetching" $p $a $ta $tp $stype $sendsel $socketrcb]
 		#chan event $c readable [list tgp:getitinthere $err $c]
 		chan event $err readable [list $socketrcb $c $err]
 		return
@@ -110,9 +110,10 @@ proc tgp:read {c a p} {
 proc tgp:stread {channel fp} {
 	fconfigure $channel -translation {auto crlf} -buffering line -buffersize 128
 	while {[string length [set text [read $fp 2048]]] > 0} {
-		puts $channel $text
+		puts -nonewline $channel $text
 		flush $channel
 	}
+	if {[eof $fp]} {puts -nonewline $channel "\r\n.\r\n"}
 	flush $channel
 	if {[fblocked $fp] == 0} {close $fp; close $channel}
 }
@@ -157,11 +158,11 @@ proc tgp:smread {channel fp} {
 	}
 	fconfigure $channel -translation {auto crlf} -buffering line
 	fconfigure $fp -translation {crlf crlf} -buffering none
-	puts stdout [format "%s %s spinning the read" $channel $fp]
+	#puts stdout [format "%s %s spinning the read" $channel $fp]
 	while {[set nn [gets $fp text]] > 0} {
-		puts stdout $nn
+		#puts stdout $nn
 		set gopherplus [lassign [tgd:split $text] st sn ts ta tp]
-		puts stdout [format "/%s/ -> g+/%s/ st/%s/ sn/%s/ ts/%s/ ta/%s/ tp/%s/" $text $gopherplus $st $sn $ts $ta $tp]
+		#puts stdout [format "/%s/ -> g+/%s/ st/%s/ sn/%s/ ts/%s/ ta/%s/ tp/%s/" $text $gopherplus $st $sn $ts $ta $tp]
 		if {$st != "i" && $st != "."} {
 			if {$tp > 100000} {
 				set iss "t"
@@ -178,7 +179,7 @@ proc tgp:smread {channel fp} {
 		}
 		puts $channel $otext
 	}
-	puts stdout $nn
+	#puts stdout $nn
 	flush $channel
 	if {[fblocked $fp] == 0} {close $fp; close $channel}
 }

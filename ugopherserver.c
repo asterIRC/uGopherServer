@@ -697,6 +697,8 @@ int main(int argc, char *argv[])
 		selector[0] = '\0';
 
 	/* Remove trailing CRLF */
+	if ((c = strrchr(selector, '\n')) != NULL) *c = '\0';
+	if ((c = strrchr(selector, '\r')) != NULL) *c = '\0';
 	chomp(selector);
 
 	if (st.debug) syslog(LOG_INFO, "client sent us \"%s\"", selector);
