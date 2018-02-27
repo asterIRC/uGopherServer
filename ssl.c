@@ -96,6 +96,7 @@ char *ssl_fgets (char *buf, size_t count, void *sockst)
 				goto continuate;
 				break;
 				case SSL_ERROR_SYSCALL:
+				if (errno == 0) goto continuate;
 				syslog(LOG_ERR, "Unrecoverable SSL error in fgets: syscall error %s, and here's the cruft in errcode and osslerr: %i, %s", strerror(errno), errcode, osslerr);
 				break;
 				case SSL_ERROR_SSL:
