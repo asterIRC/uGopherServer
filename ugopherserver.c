@@ -511,6 +511,7 @@ int main(int argc, char *argv[])
 	shm_state *shm;
 	int shmid;
 #endif
+	int s_port;
 	FILE *fp;
 	char osslerr[BUFSIZE];
 
@@ -532,6 +533,15 @@ int main(int argc, char *argv[])
 	parse_args(&st, argc, argv);
 
 	if (st.out_protection && strlen(st.protection_certkeyfile) > 2) {
+		if ((s_port = st.server_port) < 100000) {
+			// ^ bit of a TCL idiom there ;)
+
+			// Our port is 100000 + the actual TCP port if we are SSL.
+			// With this if clause, we would be compatible with
+			// older configurations where -p 100105 is used
+			// rather than -p 105.
+			st.server_port = 100000 + s_port;
+		}
 		char pathname[BUFSIZE];
 		snprintf(pathname, sizeof(pathname), "%s",
                         st.protection_certkeyfile);
