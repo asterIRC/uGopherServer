@@ -127,7 +127,6 @@ char *emulating_ssl_fgets (char *buf, size_t count, void *sockst)
 	int i, j;
 
 	for (i = 0; i < count && i < BUFSIZE; i++) {
-		continuate:
 		if ((j = read( ss->rfd, ours, BUFSIZE - i - 1)) <= 0) {
 			int errcode = errno;
 			if (ourbuf[i-1] == '\n' || ourbuf[i-1] == '\0') {

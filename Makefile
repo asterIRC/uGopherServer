@@ -37,7 +37,7 @@ RELDIR  = /var/gopher/gophernicus.org/software/gophernicus/
 
 CC      = gcc
 HOSTCC	= $(CC)
-SSLPATH	= /usr
+SSLPATH	= /usr/local
 # CHANGE SSLPATH IF YOU HAVE PROBLEMS!
 CFLAGS  = -O0 -g -Wall -L$(SSLPATH)/lib -I$(SSLPATH)/include -lcrypto
 LDFLAGS = -lssl -L$(SSLPATH)/lib -lcrypto

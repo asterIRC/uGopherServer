@@ -523,6 +523,9 @@ int main(int argc, char *argv[])
 	if ((c = strrchr(argv[0], '/'))) sstrlcpy(self, c + 1);
 	else sstrlcpy(self, argv[0]);
 
+	/* Open syslog() */
+	if (st.opt_syslog) openlog(self, LOG_PID, LOG_DAEMON);
+
 	/* Initialize state */
 #ifdef HAVE_LOCALES
 	setlocale(LC_TIME, DATE_LOCALE);
@@ -533,15 +536,6 @@ int main(int argc, char *argv[])
 	parse_args(&st, argc, argv);
 
 	if (st.out_protection && strlen(st.protection_certkeyfile) > 2) {
-		if ((s_port = st.server_port) < 100000) {
-			// ^ bit of a TCL idiom there ;)
-
-			// Our port is 100000 + the actual TCP port if we are SSL.
-			// With this if clause, we would be compatible with
-			// older configurations where -p 100105 is used
-			// rather than -p 105.
-			st.server_port = 100000 + s_port;
-		}
 		char pathname[BUFSIZE];
 		snprintf(pathname, sizeof(pathname), "%s",
                         st.protection_certkeyfile);
@@ -556,33 +550,39 @@ int main(int argc, char *argv[])
 #		endif
 		st.ss.wfd = fileno(stdout);
 		st.ss.rfd = fileno(stdin);
-		st.ss.sslctx = (void *)SSL_CTX_new(SSLv23_server_method());
-		SSL_CTX_set_cipher_list((SSL_CTX*)st.ss.sslctx, st.protection_cipherlist);
-		SSL_CTX_set_options((SSL_CTX*)st.ss.sslctx, SSL_OP_SINGLE_DH_USE|SSL_OP_NO_SSLv2|SSL_OP_SAFARI_ECDHE_ECDSA_BUG|SSL_OP_TLSEXT_PADDING);
-		int use_cert, use_pkey, reterr;
-		SSL_load_error_strings();
-		use_cert = SSL_CTX_use_certificate_chain_file((SSL_CTX*)(st.ss.sslctx), st.protection_certkeyfile);
-		use_pkey = SSL_CTX_use_PrivateKey_file((SSL_CTX*)(st.ss.sslctx), st.protection_certkeyfile, SSL_FILETYPE_PEM);
-		if (NULL == (st.ss.sslh = (void *)SSL_new(st.ss.sslctx))) {
-			syslog(LOG_ERR, "%s", "Unrecoverable error in SSL_new");
-	/* Try to open the logfile for appending */
-			if (st.log_file) {
-				if ((fp = fopen(st.log_file , "a")) == NULL) exit(0);
+		st.read = &plain_read;
+		st.write = &plain_write;
+		st.fgets = &emulating_ssl_fgets;
+		recv(0, &selector, 16, MSG_PEEK|MSG_WAITALL);
 
-				SSL_load_error_strings();
-				/* Generate log entry */
-				ERR_print_errors_fp(fp);
-				fclose(fp);
+		if (selector[0] == 0x16) {
+			st.ss.sslctx = (void *)SSL_CTX_new(SSLv23_server_method());
+			SSL_CTX_set_cipher_list((SSL_CTX*)st.ss.sslctx, st.protection_cipherlist);
+			SSL_CTX_set_options((SSL_CTX*)st.ss.sslctx, SSL_OP_SINGLE_DH_USE|SSL_OP_NO_SSLv2|SSL_OP_SAFARI_ECDHE_ECDSA_BUG|SSL_OP_TLSEXT_PADDING);
+			int use_cert, use_pkey, reterr;
+			SSL_load_error_strings();
+			use_cert = SSL_CTX_use_certificate_chain_file((SSL_CTX*)(st.ss.sslctx), st.protection_certkeyfile);
+			use_pkey = SSL_CTX_use_PrivateKey_file((SSL_CTX*)(st.ss.sslctx), st.protection_certkeyfile, SSL_FILETYPE_PEM);
+			if (NULL == (st.ss.sslh = (void *)SSL_new(st.ss.sslctx))) {
+				syslog(LOG_ERR, "%s", "Unrecoverable error in SSL_new");
+				/* Try to open the logfile for appending */
+				if (st.log_file) {
+					if ((fp = fopen(st.log_file , "a")) == NULL) exit(0);
+
+					SSL_load_error_strings();
+					/* Generate log entry */
+					ERR_print_errors_fp(fp);
+					fclose(fp);
+				}
+				exit(0);
 			}
-			exit(0);
-		}
-		BIO *wbio, *rbio;
-		wbio = BIO_new_fp(stdout, BIO_NOCLOSE);
-		rbio = BIO_new_fp(stdin, BIO_NOCLOSE);
-		setvbuf(stdout, (char *)NULL, _IONBF, 0);
-		setvbuf(stdin, (char *)NULL, _IONBF, 0);
-		SSL_set_bio((SSL*)st.ss.sslh, rbio, wbio);
-		SSL_set_accept_state((SSL*)st.ss.sslh);
+			BIO *wbio, *rbio;
+			wbio = BIO_new_fp(stdout, BIO_NOCLOSE);
+			rbio = BIO_new_fp(stdin, BIO_NOCLOSE);
+			setvbuf(stdout, (char *)NULL, _IONBF, 0);
+			setvbuf(stdin, (char *)NULL, _IONBF, 0);
+			SSL_set_bio((SSL*)st.ss.sslh, rbio, wbio);
+			SSL_set_accept_state((SSL*)st.ss.sslh);
 #if 0
 		while ((reterr = SSL_accept((SSL*)st.ss.sslh)) <= 0) {
 			int errcode = ERR_get_error();
@@ -625,10 +625,26 @@ int main(int argc, char *argv[])
 			exit(0);
 		}
 #endif
-		st.read = &ssl_read;
-		st.write = &ssl_write;
-		st.fgets = &ssl_fgets;
-		SSL_do_handshake((SSL*)st.ss.sslh);
+			st.read = &ssl_read;
+			st.write = &ssl_write;
+			st.fgets = &ssl_fgets;
+			if ((s_port = st.server_port) < 100000) {
+				// ^ bit of a TCL idiom there ;)
+
+				// Our port is 100000 + the actual TCP port if we are SSL.
+				// With this if clause, we would be compatible with
+				// older configurations where -p 100105 is used
+				// rather than -p 105.
+				st.server_port = 100000 + s_port;
+			}
+			SSL_do_handshake((SSL*)st.ss.sslh);
+		} else {
+			st.ss.wfd = 1;
+			st.ss.rfd = 0;
+			st.read = &plain_read;
+			st.write = &plain_write;
+			st.fgets = &emulating_ssl_fgets;
+		}
 	} else {
 		st.ss.wfd = 1;
 		st.ss.rfd = 0;
@@ -645,9 +661,6 @@ int main(int argc, char *argv[])
 		if (-1 != setuid(0)) die(&st, ERR_ACCESS, "Able to regain root privileges");
 	}
 #endif
-
-	/* Open syslog() */
-	if (st.opt_syslog) openlog(self, LOG_PID, LOG_DAEMON);
 
 	/* Make sure the computer is turned on -- joke function in
 	   BeOS */
@@ -854,7 +867,7 @@ int main(int argc, char *argv[])
 	if ((file.st_mode & S_IFMT) != S_IFDIR) c = dirname(buf);
 	else c = buf;
 
-	if (chdir(c) == ERROR) die(&st, ERR_ACCESS, NULL);
+	if (chdir(c) == ERROR) die(&st, ERR_ACCESS, "Cannot chdir()");
 
 	/* Keep count of hits and data transfer */
 #ifdef HAVE_SHMEM

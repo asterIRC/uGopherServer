@@ -49,7 +49,7 @@ set proxyhost [lindex $::argv 1]
 
 proc acceptconn {c a p} {
 	#puts stdout "received connection from 1/$p/$a"
-	chan configure $c -blocking 0 -buffering line -translation {auto crlf}
+	chan configure $c -blocking 0 -buffering line
 	chan event $c readable [list tgp:read $c $a $p]
 }
 

@@ -189,7 +189,9 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #define DEFAULT_HDR_EXT	"Ghdr"
 #define DEFAULT_TAG_EXT	"Gtag"
 #define DEFAULT_FTR_EXT	"Gftr"
-#define DEFAULT_SSL_CKF	"/nonexistant.combinedpem"
+#define DEFAULT_GPH_EXT	"gph"
+#define DEFAULT_GMP_EXT	"gmp"
+#define DEFAULT_SSL_CKF	"/m"
 #define DEFAULT_CIPHERS	"HIGH:DEFAULT:!aNULL:!PSK:!SRP:!MD5:!RC4:!EXP"
 #define DEFAULT_CGI	"/cgi-bin/"
 #define DEFAULT_USERDIR	"public_gopher"
@@ -197,7 +199,7 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #define DEFAULT_WIDTH	70
 #define DEFAULT_CHARSET	US_ASCII
 #define MIN_WIDTH	33
-#define MAX_WIDTH	200
+#define MAX_WIDTH	600
 
 /* Session defaults */
 #define DEFAULT_SESSION_TIMEOUT		1800
@@ -258,7 +260,7 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 #define BUFSIZE		(4*1024)	/* Default size for string buffers */
 #define MAX_HIDDEN	32	/* Maximum number of hidden files */
 #define MAX_FILETYPES	128	/* Maximum number of suffix to filetype mappings */
-#define MAX_FILTERS	16	/* Maximum number of file filters */
+#define MAX_FILTERS	64	/* Maximum number of file filters */
 #define MAX_SDIRENT	1024	/* Maximum number of files per directory to handle */
 #define MAX_REWRITE	32	/* Maximum number of selector rewrite options */
 
@@ -291,7 +293,7 @@ typedef struct {
 
 	/* Request */
 	char req_selector[BUFSIZE];
-	char req_realpath[BUFSIZE];
+	char req_realpath[BUFSIZE*6];
 	char req_query_string[BUFSIZE];
 	char req_referrer[BUFSIZE];
 	char protection_certkeyfile[BUFSIZE];
