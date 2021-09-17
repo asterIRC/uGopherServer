@@ -30,6 +30,7 @@
 #include "fcntl.h"
 #include "signal.h"
 //#include "ssl.c"
+char sockbuf[BUFSIZE*4];
 
 /*
  * Print gopher menu line
@@ -514,7 +515,7 @@ int main(int argc, char *argv[])
 	int s_port;
 	FILE *fp;
 	char osslerr[BUFSIZE];
-
+	//sockbuf = malloc(BUFSIZE*4);
 	fcntl(0, F_SETFD, FD_CLOEXEC);
 	fcntl(1, F_SETFD, FD_CLOEXEC);
 	fcntl(2, F_SETFD, FD_CLOEXEC);
@@ -644,6 +645,7 @@ int main(int argc, char *argv[])
 			st.read = &plain_read;
 			st.write = &plain_write;
 			st.fgets = &emulating_ssl_fgets;
+			st.out_protection = 0;
 		}
 	} else {
 		st.ss.wfd = 1;

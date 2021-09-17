@@ -266,7 +266,7 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 
 
 // using one buffer now
-char sockbuf[BUFSIZE*8];
+extern char sockbuf[BUFSIZE*4];
 
 /* Struct for file suffix -> gopher filetype mapping */
 typedef struct {

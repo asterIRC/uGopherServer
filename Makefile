@@ -16,9 +16,10 @@ OBJECTS = $(SOURCES:.c=.o)
 DOCS    = LICENSE README INSTALL TODO ChangeLog README.Gophermap gophertag
 
 INSTALL = PATH=$$PATH:/usr/sbin ./install-sh -o 0 -g 0
-DESTDIR = /usr
+DESTDIR = /opt/local
 SBINDIR = $(DESTDIR)/sbin
 DOCDIR  = $(DESTDIR)/share/doc/$(PACKAGE)
+INETDDIR = $(SBINDIR)
 
 ROOT    = /var/gopher
 OSXROOT = /Library/GopherServer
@@ -35,12 +36,12 @@ DIST    = $(PACKAGE)-$(VERSION)
 TGZ     = $(DIST).tar.gz
 RELDIR  = /var/gopher/gophernicus.org/software/gophernicus/
 
-CC      = gcc
+CC      = clang -m64
 HOSTCC	= $(CC)
 SSLPATH	= /usr/local
 # CHANGE SSLPATH IF YOU HAVE PROBLEMS!
-CFLAGS  = -O0 -g -Wall -L$(SSLPATH)/lib -I$(SSLPATH)/include -lcrypto
-LDFLAGS = -lssl -L$(SSLPATH)/lib -lcrypto
+CFLAGS  = -fPIE -fPIC -Og -g -ggdb3 -Wall -L$(SSLPATH)/lib -I$(SSLPATH)/include -lcrypto
+LDFLAGS = -Wl,-rpath=$(SSLPATH)/lib $(SSLPATH)/lib/libcrypto.so $(SSLPATH)/lib/libssl.so -lsocket
 
 
 #
@@ -130,8 +131,8 @@ install: ChangeLog
 		                 install-files install-docs install-root install-haiku install-done; ;; \
 		*)       $(MAKE) install-files install-docs install-root; ;; \
 	esac
-	@if [ -d "$(XINETD)" ]; then $(MAKE) install-xinetd install-done; fi
-	@if [ -f "$(INETD)" ]; then $(MAKE) install-inetd; fi
+#	@if [ -d "$(XINETD)" ]; then $(MAKE) install-xinetd install-done; fi
+	$(MAKE) install-inetd
 
 .PHONY: install
 
@@ -169,22 +170,46 @@ install-inetd:
 	@echo
 	@echo "======================================================================"
 	@echo
-	@echo "Looks like your system has the traditional internet superserver inetd."
-	@echo "Automatic installations are a can of worms, so please add the following"
-	@echo "line to the end of your /etc/inetd.conf and restart or kill -HUP the"
-	@echo "inetd process."
+	@echo "If using traditional INETD, add this line to its configuration file."
 	@echo
 	@echo "gopher  stream  tcp  nowait  nobody  $(SBINDIR)/$(BINARY)  $(BINARY) -h `hostname`"
+	@echo
+	@echo "If using Solaris INETD, play around with our smf.xml file and /etc/services."
+	@echo
+	@echo "If using XINETD, run $(MAKE) install-xinetd BINDADDR=bind_address FQDN=hostname \\ "
+	@echo " OPTS=\"options to pass to $(BINARY)\" \\ "
+	@echo " PATHTOCOMBINEDPEM=/path/to/your/ssl/cert/and/use/a/-K/in/OPTS/if/not/combined \\ "
+	@echo " SID=unique-arbitrary-alnum-ID-for-this-instance GOPHER_ROOT=/path/to/gopher/files"
+	@echo "I know that's complex & hard to understand. But you can repeat it if you have multiple hosts."
+	@echo "Enjoy your new gopherd."
 	@echo
 	@echo "======================================================================"
 	@echo
 
+#BINARY = defined in Makefile
+#BINDADDR =
+#EMAIL =
+#GOPHER_ROOT =
+#OPTS =
+#PATHTOCOMBINEDPEM =
+#SID =
+#FQDN =
+
 install-xinetd:
-	if [ -d "$(XINETD)" -a ! -f "$(XINETD)/$(NAME)" ]; then \
-		sed -e "s/@HOSTNAME@/`hostname`/g" $(NAME).xinetd > $(XINETD)/$(NAME); \
-		[ -x /sbin/service ] && /sbin/service xinetd reload; \
+	if [ -d "$(XINETD)" -a ! -f "$(XINETD)/$(SID)$(NAME)" ]; then \
+		sed -e "s/@FQDN@/$(FQDN)/g" $(NAME).xinetd | \
+		sed -e "s/@SID@/$(SID)/g" | \
+		sed -e "s!@OPTS@!$(OPTS)!g"  | \
+		sed -e "s/@EMAIL@/$(EMAIL)/g" | \
+		sed -e "s!@GOPHER_ROOT@!$(GOPHER_ROOT)!g" | \
+		sed -e "s/@BINARY@/$(BINARY)/g" | \
+		sed -e "s/@BINDADDR@/$(BINDADDR)/g" | \
+		sed -e "s!@INETDDIR@!$(INETDDIR)!g" | \
+		sed -e "s!@PATHTOCOMBINEDPEM@!$(PATHTOCOMBINEDPEM)!g" \
+		> $(XINETD)/$(SID)$(NAME); \
 	fi
 	@echo
+#		[ -x /sbin/service ] && /sbin/service xinetd reload; \
 
 install-osx:
 	if [ -d "$(LAUNCHD)" -a ! -f "$(LAUNCHD)/$(PLIST)" ]; then \

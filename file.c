@@ -412,6 +412,7 @@ void gopher_file(state *st)
 	char buf[BUFSIZE];
 	char *c, *d;
 	int served = 0;
+	if (st->debug) syslog(LOG_INFO, "top of gopher_file (file.c)");
 
 	/* Refuse to serve out gophermaps/tags */
 	if ((c = strrchr(st->req_realpath, '/'))) c++;
@@ -431,32 +432,39 @@ void gopher_file(state *st)
 			die(st, ERR_ACCESS, "Refusing to serve out a file-selector tag file");
 	}
 
+	if (st->debug) syslog(LOG_INFO, "not refusing to serve. above CGI");
 	/* Check for & run CGI and query scripts */
 	if (strstr(st->req_realpath, st->cgi_file) || st->req_filetype == TYPE_QUERY) {
 		run_cgi(st, st->req_realpath, NULL);
 		served = 1;
 	}
 
+	if (st->debug) syslog(LOG_INFO, "%sserved, above suffix", served?"":"un");
 	/* Check for a file suffix filter */
 	if (!served && *st->filter_dir && (c = strrchr(st->req_realpath, '.'))) {
 		snprintf(buf, sizeof(buf), "%s/%s", st->filter_dir, c + 1);
 
 		/* Filter file through the script */
-		if (stat(buf, &file) == OK && (file.st_mode & S_IXOTH))
+		if (stat(buf, &file) == OK && (file.st_mode & S_IXOTH)) {
+			if (st->debug) syslog(LOG_INFO, "%sserved, run_cgi(st, \"%s\", \"%s\");", served?"":"un", buf, st->req_realpath);
 			run_cgi(st, buf, st->req_realpath);
-		served = 1;
+			served = 1;
+		}
 	}
 
+	if (st->debug) syslog(LOG_INFO, "%sserved, above filetype", served?"":"un");
 	/* Check for a filetype filter */
 	if (!served && *st->filter_dir) {
 		snprintf(buf, sizeof(buf), "%s/%c", st->filter_dir, st->req_filetype);
 
 		/* Filter file through the script */
-		if (stat(buf, &file) == OK && (file.st_mode & S_IXOTH))
+		if (stat(buf, &file) == OK && (file.st_mode & S_IXOTH)) {
 			run_cgi(st, buf, st->req_realpath);
-		served = 1;
+			served = 1;
+		}
 	}
 
+	if (st->debug) syslog(LOG_INFO, "%sserved, above regular, type %i", served?"":"un", st->req_filetype);
 	/* Output regular files */
 	if (!served) {
 		if (st->req_filetype == TYPE_TEXT || st->req_filetype == TYPE_MIME)

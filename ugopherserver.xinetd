@@ -2,12 +2,30 @@
 
 # default: on
 # description: Gophernicus - Modern full-featured gopher server
-service gopher
+
+service sgopher-@SID@
 {
-	socket_type	= stream        
-	wait		= no
-	user		= nobody
-	server		= /usr/sbin/in.ugopherserver
-	server_args	= -r/var/gopher -h@HOSTNAME@
-	disable		= no
+        protocol = tcp
+        type = UNLISTED
+        socket_type = stream
+        wait = no
+        bind = @BINDADDR@
+        server = @INETDDIR@/@BINARY@
+        server_args = @OPTS@ -o UTF-8 -h @FQDN@ -p 100105 -r @GOPHER_ROOT@ -A @EMAIL@ -S @PATHTOCOMBINEDPEM@
+        port = 105
+        user = root
 }
+
+service gopher-@SID@
+{
+        protocol = tcp
+        type = UNLISTED
+        socket_type = stream
+        wait = no
+        bind = @BINDADDR@
+        server = @INETDDIR@/@BINARY@
+        server_args = @OPTS@ -o UTF-8 -h @FQDN@ -p 70 -r @GOPHER_ROOT@ -A @EMAIL@ -S @PATHTOCOMBINEDPEM@
+        port = 70
+        user = root
+}
+

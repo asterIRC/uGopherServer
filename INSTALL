@@ -111,4 +111,15 @@ Tested (and semi-supported) platforms include:
   Haiku R1      i386          gcc 2
 
 
+Installing on illumos and Unleashed
+===================================
 
+illumos has an arcane service management system, and an arcane inetd
+which is not configured using inetd.conf as all others are.
+
+Instead, what you need to do is edit ugopherserver-smf.xml, then `svccfg import ugopherserver-smf.xml`.
+You'll also need to install definitions for "gopher" and "sgopher" in /etc/services.
+
+Alternatively, you can, if you use pkgsrc, install an alternative inetd (such as xinetd) and somehow make that start on boot.
+
+You will need to do all this yourself.
